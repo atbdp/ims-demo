@@ -1,0 +1,810 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VAT / Invoice Detail · ArchTech IMS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;700&family=Noto+Sans+Bengali:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* ===================================================================
+   ArchTech IMS — design tokens (locked in archtech-ims-builder SKILL.md)
+   =================================================================== */
+:root {
+  --color-deep-teal: #0E3B36;
+  --color-deep-teal-600: #124A43;
+  --color-deep-teal-700: #0A2E2A;
+  --color-marigold: #E8A33D;
+  --color-marigold-600: #CF8A25;
+  --color-marigold-100: #FCEED9;
+  --color-off-white: #F7F5F0;
+  --color-charcoal-ink: #1E2422;
+  --color-alert-red: #C1483B;
+  --color-alert-red-100: #F7E3E0;
+  --color-soft-sage: #B9CDB0;
+  --color-soft-sage-100: #EAF1E7;
+  --color-soft-sage-700: #3F6B4A;
+  --color-white: #FFFFFF;
+
+  --surface-canvas: var(--color-off-white);
+  --surface-card: var(--color-white);
+  --surface-sidebar: var(--color-deep-teal);
+  --surface-sidebar-active: var(--color-deep-teal-600);
+  --text-body: var(--color-charcoal-ink);
+  --text-muted: #6B756F;
+  --text-inverse: #F2F7F1;
+  --text-inverse-muted: #A9C2B9;
+  --border-subtle: #DDE6D8;
+  --border-card: var(--color-soft-sage);
+  --success-bg: var(--color-soft-sage-100);
+  --success-text: var(--color-soft-sage-700);
+  --success-icon: #4E8A5C;
+  --danger-bg: var(--color-alert-red-100);
+  --danger-text: var(--color-alert-red);
+  --warning-bg: var(--color-marigold-100);
+  --warning-text: #8A5A15;
+  --warning-icon: var(--color-marigold-600);
+  --focus-ring: #2F7DE1;
+
+  --font-display: 'Sora', 'Noto Sans Bengali', system-ui, sans-serif;
+  --font-body: 'Inter', 'Noto Sans Bengali', system-ui, -apple-system, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+  --fs-xs: 0.6875rem; --fs-sm: 0.8125rem; --fs-base: 0.9375rem;
+  --fs-md: 1.0625rem; --fs-lg: 1.25rem; --fs-xl: 1.5rem;
+
+  --radius: 8px; --radius-sm: 6px; --radius-pill: 999px;
+
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+  --space-5: 20px; --space-6: 24px; --space-7: 32px; --space-8: 40px;
+
+  --sidebar-width: 232px;
+  --sidebar-width-collapsed: 76px;
+  --pulse-strip-height: 38px;
+  --topbar-height: 68px;
+
+  --shadow-card: 0 1px 2px rgba(14, 59, 54, 0.04);
+  --shadow-popover: 0 8px 24px rgba(14, 59, 54, 0.12);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-base);
+  color: var(--text-body);
+  background: var(--surface-canvas);
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3 { margin: 0; font-family: var(--font-display); }
+p { margin: 0; }
+button { font: inherit; color: inherit; }
+a { color: inherit; text-decoration: none; }
+input { font: inherit; }
+table { border-collapse: collapse; width: 100%; }
+:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; border-radius: var(--radius-sm); }
+
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.num { text-align: right; }
+.text-success { color: var(--success-icon); }
+.text-warning { color: var(--warning-text); }
+.text-danger { color: var(--color-alert-red); }
+
+.icon { display: inline-block; vertical-align: -3px; flex-shrink: 0; }
+.icon--14 { width: 14px; height: 14px; vertical-align: -2px; }
+.icon--16 { width: 16px; height: 16px; vertical-align: -2px; }
+.icon--18 { width: 18px; height: 18px; }
+.icon--muted { color: var(--text-muted); }
+.icon--danger { color: var(--color-alert-red); }
+.icon--info { color: #3B6FA8; }
+.icon--success { color: var(--success-icon); }
+.icon--marigold { color: var(--color-marigold-600); }
+
+/* ============ Shell ============ */
+.app-shell { min-height: 100%; display: flex; flex-direction: column; }
+.app-body { flex: 1; display: flex; min-height: 0; }
+
+.pulse-strip {
+  height: var(--pulse-strip-height);
+  background: var(--color-deep-teal-700);
+  color: var(--text-inverse-muted);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 var(--space-5);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.01em;
+  gap: var(--space-4);
+  flex-wrap: wrap; row-gap: 2px;
+}
+.pulse-strip__universal { display: flex; align-items: center; gap: var(--space-2); min-width: 0; flex-wrap: wrap; }
+.pulse-sep { opacity: .5; }
+.pulse-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--color-soft-sage); flex-shrink: 0; }
+.pulse-badge { display: inline-flex; align-items: center; gap: 4px; }
+.pulse-badge.is-authorized { color: var(--color-soft-sage); }
+.pulse-badge.is-pending { color: var(--color-marigold); }
+.pulse-strip__branch { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.pulse-strip__branch strong { color: var(--color-marigold); font-weight: 600; }
+
+.sidebar {
+  width: var(--sidebar-width); flex-shrink: 0;
+  background: var(--surface-sidebar); color: var(--text-inverse);
+  display: flex; flex-direction: column;
+}
+.sidebar__brand { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-6) var(--space-5) var(--space-5); }
+.brand-mark { color: var(--color-marigold); flex-shrink: 0; }
+.brand-text { display: flex; flex-direction: column; min-width: 0; }
+.brand-name { font-family: var(--font-display); font-weight: 700; font-size: var(--fs-md); line-height: 1.2; white-space: nowrap; }
+.brand-tagline { font-size: 10.5px; color: var(--text-inverse-muted); white-space: nowrap; }
+.sidebar__nav { display: flex; flex-direction: column; padding: var(--space-2) var(--space-3); gap: 2px; flex: 1; }
+.nav-item { display: flex; align-items: center; gap: var(--space-3); padding: 10px var(--space-3); border-radius: var(--radius-sm); color: var(--text-inverse-muted); font-size: var(--fs-sm); font-weight: 500; white-space: nowrap; cursor: pointer; background: none; border: none; text-align: left; width: 100%; }
+.nav-item:hover { background: rgba(247,245,240,.06); color: var(--text-inverse); }
+.nav-item.is-active { background: var(--surface-sidebar-active); color: var(--text-inverse); box-shadow: inset 3px 0 0 var(--color-marigold); }
+.sidebar__footer { padding: var(--space-4) var(--space-5) var(--space-6); font-size: 10.5px; color: var(--text-inverse-muted); line-height: 1.6; border-top: 1px solid rgba(247,245,240,.08); }
+
+.main-column { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.topbar { height: var(--topbar-height); background: var(--surface-card); border-bottom: 1px solid var(--border-subtle); display: flex; align-items: center; gap: var(--space-4); padding: 0 var(--space-6); flex-shrink: 0; }
+.icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: var(--radius-sm); border: 1px solid transparent; background: transparent; color: var(--text-body); position: relative; cursor: pointer; }
+.icon-btn:hover { background: var(--surface-canvas); border-color: var(--border-subtle); }
+.search-box { flex: 1; max-width: 420px; display: flex; align-items: center; gap: var(--space-2); padding: 9px var(--space-3); border: 1px solid var(--border-subtle); border-radius: var(--radius); background: var(--surface-canvas); }
+.search-box input { flex: 1; border: 0; background: transparent; outline: none; font-size: var(--fs-sm); color: var(--text-body); min-width: 0; }
+.search-box input::placeholder { color: var(--text-muted); }
+.search-box kbd { font-size: 10.5px; color: var(--text-muted); border: 1px solid var(--border-subtle); border-radius: 4px; padding: 1px 6px; background: var(--surface-card); }
+.topbar__right { display: flex; align-items: center; gap: var(--space-2); margin-left: auto; }
+.branch-pill { display: inline-flex; align-items: center; gap: 6px; padding: 8px var(--space-3); border: 1px solid var(--border-subtle); border-radius: var(--radius); background: var(--surface-card); font-size: var(--fs-sm); font-weight: 500; cursor: pointer; white-space: nowrap; }
+.branch-pill:hover { background: var(--surface-canvas); }
+.lang-toggle { display: inline-flex; align-items: center; border: 1px solid var(--border-subtle); border-radius: var(--radius-pill); overflow: hidden; font-size: var(--fs-xs); font-weight: 600; background: none; padding: 0; cursor: pointer; }
+.lang-toggle span { padding: 7px 12px; color: var(--text-muted); }
+.lang-toggle span.is-active { background: var(--color-deep-teal); color: var(--text-inverse); border-radius: var(--radius-pill); }
+.notif-btn .notif-badge { position: absolute; top: 4px; right: 4px; min-width: 16px; height: 16px; padding: 0 3px; background: var(--color-alert-red); color: #fff; font-size: 9.5px; font-weight: 700; border-radius: var(--radius-pill); display: flex; align-items: center; justify-content: center; border: 1.5px solid var(--surface-card); }
+.profile-btn { display: flex; align-items: center; gap: var(--space-2); padding: 6px 10px 6px 6px; border: 1px solid transparent; border-radius: var(--radius); background: transparent; cursor: pointer; }
+.profile-btn:hover { background: var(--surface-canvas); border-color: var(--border-subtle); }
+.profile-btn .avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--color-deep-teal); color: var(--text-inverse); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.profile-text { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.25; }
+.profile-text strong { font-size: var(--fs-sm); font-weight: 600; }
+.profile-text small { font-size: 11px; color: var(--text-muted); }
+.main-content { flex: 1; padding: var(--space-6); max-width: 1440px; width: 100%; margin: 0 auto; }
+
+.card { background: var(--surface-card); border: 1px solid var(--border-card); border-radius: var(--radius); box-shadow: var(--shadow-card); padding: var(--space-5); }
+.card__title { font-size: var(--fs-base); font-weight: 700; margin-bottom: var(--space-4); }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px var(--space-4); border-radius: var(--radius); font-size: var(--fs-sm); font-weight: 600; cursor: pointer; border: 1px solid transparent; white-space: nowrap; }
+.btn--outline { background: var(--surface-card); border-color: var(--border-subtle); color: var(--text-body); }
+.btn--outline:hover { background: var(--surface-canvas); border-color: var(--border-card); }
+.badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: var(--radius-pill); font-size: var(--fs-xs); font-weight: 600; }
+.badge--sage { background: var(--success-bg); color: var(--success-text); }
+
+/* ============ Screen-specific ============ */
+.page-header { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-4); flex-wrap: wrap; margin-bottom: var(--space-6); }
+.breadcrumb { display: flex; align-items: center; gap: 6px; font-size: var(--fs-xs); color: var(--text-muted); margin-bottom: 6px; }
+.breadcrumb a:hover { color: var(--text-body); text-decoration: underline; }
+.page-title { font-size: var(--fs-xl); font-weight: 700; }
+.page-header__actions { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+
+.invoice-layout { display: grid; grid-template-columns: minmax(0,1fr) 360px; gap: var(--space-5); align-items: start; }
+.invoice-main { display: flex; flex-direction: column; gap: var(--space-5); min-width: 0; }
+.invoice-side { display: flex; flex-direction: column; gap: var(--space-5); }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-5); }
+
+.invoice-info { display: grid; grid-template-columns: repeat(3,1fr); gap: var(--space-6); }
+.invoice-info__col { display: flex; flex-direction: column; gap: var(--space-4); }
+.field { display: flex; flex-direction: column; gap: 3px; }
+.field__label { font-size: var(--fs-xs); color: var(--text-muted); }
+.field__value { font-size: var(--fs-sm); font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+.field__value--mono { font-family: var(--font-mono); }
+.field__value--lg { font-size: var(--fs-base); }
+.field__value--icon { font-weight: 500; }
+.field__value--success { color: var(--success-icon); }
+
+.copy-btn { border: none; background: transparent; cursor: pointer; color: var(--text-muted); display: inline-flex; padding: 2px; border-radius: 4px; }
+.copy-btn:hover { color: var(--color-deep-teal); background: var(--surface-canvas); }
+.copy-btn.is-copied { color: var(--success-icon); }
+
+.table-scroll { overflow-x: auto; margin: 0 calc(var(--space-5) * -1); padding: 0 var(--space-5); }
+.items-table { font-size: var(--fs-sm); min-width: 760px; }
+.items-table thead th { text-align: left; font-size: var(--fs-xs); font-weight: 600; color: var(--text-muted); padding: 0 var(--space-2) var(--space-2); border-bottom: 1px solid var(--border-subtle); white-space: nowrap; }
+.items-table td { padding: var(--space-3) var(--space-2); border-bottom: 1px solid var(--border-subtle); vertical-align: top; }
+.items-table tbody tr:last-child td { border-bottom: none; }
+.items-table .col-no { width: 28px; color: var(--text-muted); }
+.item-name { display: block; font-weight: 600; }
+.item-sku { display: block; font-size: var(--fs-xs); color: var(--text-muted); font-family: var(--font-mono); margin-top: 2px; }
+.items-table__footer { display: flex; justify-content: space-between; margin-top: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--border-subtle); font-size: var(--fs-sm); font-weight: 600; color: var(--text-muted); }
+
+.kv-list { display: flex; flex-direction: column; gap: var(--space-3); }
+.kv { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); font-size: var(--fs-sm); }
+.kv > span:first-child { color: var(--text-muted); }
+.kv > span:last-child { font-weight: 600; display: inline-flex; align-items: center; gap: 5px; text-align: right; }
+
+.summary-list { display: flex; flex-direction: column; gap: var(--space-3); }
+.summary-row { display: flex; justify-content: space-between; font-size: var(--fs-sm); }
+.summary-row span:last-child { font-weight: 600; }
+.summary-divider { border: none; border-top: 1px solid var(--border-subtle); margin: 2px 0; }
+.summary-row--grand { font-size: var(--fs-md); }
+.summary-row--grand span:last-child { font-weight: 700; }
+.payable-banner { display: flex; justify-content: space-between; align-items: center; margin-top: var(--space-4); padding: var(--space-3) var(--space-4); background: var(--success-bg); border-radius: var(--radius-sm); font-weight: 700; color: var(--success-text); }
+.payable-banner .mono { font-size: var(--fs-md); }
+
+.vat-table { font-size: var(--fs-sm); }
+.vat-table th { text-align: left; font-size: var(--fs-xs); color: var(--text-muted); font-weight: 600; padding-bottom: var(--space-2); border-bottom: 1px solid var(--border-subtle); }
+.vat-table td { padding: var(--space-2) 0; }
+.vat-table tfoot td { border-top: 1px solid var(--border-subtle); padding-top: var(--space-2); font-weight: 700; }
+
+.status-banner { display: flex; gap: var(--space-3); align-items: flex-start; padding: var(--space-4); border-radius: var(--radius); font-size: var(--fs-sm); }
+.status-banner div { display: flex; flex-direction: column; gap: 2px; }
+.status-banner--success { background: var(--success-bg); color: var(--success-text); }
+.status-banner--warning { background: var(--warning-bg); color: var(--warning-text); }
+
+.payments-list { display: flex; flex-direction: column; gap: var(--space-3); margin-bottom: var(--space-3); }
+.payment-row { display: flex; justify-content: space-between; align-items: center; font-size: var(--fs-sm); }
+.payment-row__label { display: inline-flex; align-items: center; gap: 6px; }
+.payments-total { display: flex; justify-content: space-between; padding-top: var(--space-3); border-top: 1px solid var(--border-subtle); font-weight: 700; font-size: var(--fs-base); }
+
+.actions-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: var(--space-2); }
+.action-tile { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: var(--space-3) var(--space-2); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); background: var(--surface-card); cursor: pointer; text-align: center; }
+.action-tile:hover { background: var(--surface-canvas); border-color: var(--border-card); }
+.action-tile span { font-size: 11.5px; font-weight: 600; line-height: 1.25; }
+
+.footer-notice { display: flex; align-items: center; gap: 8px; margin-top: var(--space-6); padding: var(--space-3) var(--space-4); background: var(--success-bg); color: var(--success-text); border-radius: var(--radius-sm); font-size: var(--fs-xs); font-weight: 500; }
+
+.toast { position: fixed; bottom: var(--space-5); left: 50%; transform: translate(-50%,12px); background: var(--color-charcoal-ink); color: #fff; padding: var(--space-3) var(--space-4); border-radius: var(--radius); font-size: var(--fs-sm); max-width: min(90vw,420px); box-shadow: var(--shadow-popover); opacity: 0; pointer-events: none; transition: opacity .18s ease, transform .18s ease; z-index: 60; text-align: center; }
+.toast.is-visible { opacity: 1; transform: translate(-50%,0); pointer-events: auto; }
+
+.demo-tag { position: fixed; top: 10px; right: 10px; background: var(--color-charcoal-ink); color: #fff; font-size: 10.5px; font-weight: 600; padding: 5px 10px; border-radius: var(--radius-pill); z-index: 70; opacity: .82; letter-spacing: .02em; }
+.state-switch { display: inline-flex; align-items: center; border: 1px solid var(--border-subtle); border-radius: var(--radius-pill); overflow: hidden; font-size: var(--fs-xs); font-weight: 600; background: var(--surface-card); }
+.state-switch button { padding: 7px 12px; color: var(--text-muted); background: none; border: none; cursor: pointer; }
+.state-switch button.is-active { background: var(--color-deep-teal); color: var(--text-inverse); border-radius: var(--radius-pill); }
+
+@media print {
+  .pulse-strip, .sidebar, .topbar, .page-header__actions, .actions-grid, .toast, .demo-tag, .state-switch { display: none !important; }
+  .main-content { padding: 0; max-width: none; }
+  .invoice-layout { grid-template-columns: 1fr; }
+  .card { break-inside: avoid; box-shadow: none; }
+  body { background: #fff; }
+}
+@media (max-width: 1180px) { .invoice-layout { grid-template-columns: minmax(0,1fr) 320px; } }
+@media (max-width: 1024px) { .invoice-layout { grid-template-columns: 1fr; } .invoice-side { order: -1; } .invoice-info { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 900px) {
+  .sidebar { position: fixed; inset: var(--pulse-strip-height) 0 0 auto; z-index: 40; width: min(78vw,280px); margin-left: -100%; transition: margin-left .18s ease; box-shadow: var(--shadow-popover); }
+  .app-shell.is-sidebar-open .sidebar { margin-left: 0; }
+  .search-box kbd { display: none; }
+}
+@media (max-width: 768px) {
+  .two-col { grid-template-columns: 1fr; }
+  .invoice-info { grid-template-columns: 1fr; gap: var(--space-4); }
+  .actions-grid { grid-template-columns: repeat(2,1fr); }
+  .profile-text, .branch-pill span { display: none; }
+}
+.is-demo-disabled { opacity: .45; cursor: not-allowed !important; }
+.is-demo-disabled:hover { background: transparent !important; color: inherit !important; }
+</style>
+</head>
+<body>
+<span class="demo-tag">DEMO — static data, no backend</span>
+
+<div class="app-shell" id="appShell">
+
+  <!-- ============ Pulse strip ============ -->
+  <div class="pulse-strip">
+    <div class="pulse-strip__universal">
+      <span class="pulse-dot" style="background:var(--color-soft-sage)"></span>
+      <span data-i18n="pulse.synced">Synced</span>
+      <span class="pulse-sep">&middot;</span>
+      <span class="pulse-badge is-authorized" id="pulseSdcBadge">
+        <svg class="icon icon--14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="m8.5 12.3 2.4 2.4 4.8-5.4"/></svg>
+        <span data-i18n="pulse.sdcAuthorized">SDC Authorized</span>
+      </span>
+      <span class="pulse-sep">&middot;</span>
+      <span>
+        <svg class="icon icon--14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5.3l3.5 2"/></svg>
+        <span data-i18n="pulse.lastUpdate">Last Update: 04 Jul 2026 10:18 AM</span>
+      </span>
+    </div>
+    <div class="pulse-strip__branch">
+      <svg class="icon icon--14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="3.5" width="9" height="17" rx="1"/><path d="M13.5 9.5h5.25a.75.75 0 0 1 .75.75V20h-6"/><path d="M7.5 7.5h2M7.5 11h2M7.5 14.5h2"/></svg>
+      <span><span data-i18n="pulse.activeBranch">Active Branch:</span> <strong>Gulshan Branch</strong></span>
+    </div>
+  </div>
+
+  <div class="app-body">
+    <!-- ============ Sidebar ============ -->
+    <aside class="sidebar">
+      <div class="sidebar__brand">
+        <span class="brand-mark">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v9.5h16V10"/><path d="M3 6.5 4.5 3h15L21 6.5"/><path d="M3 6.5a2.25 2.25 0 0 0 4.5 0M7.5 6.5a2.25 2.25 0 0 0 4.5 0M12 6.5a2.25 2.25 0 0 0 4.5 0M16.5 6.5a2.25 2.25 0 0 0 4.5 0"/><path d="M9.5 19.5V14h5v5.5"/></svg>
+        </span>
+        <div class="brand-text">
+          <span class="brand-name">ArchTech IMS</span>
+          <span class="brand-tagline" data-i18n="app.tagline">Inventory Management System</span>
+        </div>
+      </div>
+      <nav class="sidebar__nav">
+        <a class="nav-item" href="dashboard.html" data-icon="dashboard"><span data-i18n="nav.dashboard">Dashboard</span></a>
+        <a class="nav-item is-demo-disabled" href="#" onclick="return false" title="Not included in this demo" data-icon="pos"><span data-i18n="nav.pos">POS / Billing</span></a>
+        <a class="nav-item" href="inventory.html" data-icon="inventory"><span data-i18n="nav.inventory">Inventory</span></a>
+        <a class="nav-item" href="purchase-orders.html" data-icon="purchases"><span data-i18n="nav.purchases">Purchases</span></a>
+        <a class="nav-item is-active" href="sales-history.html" data-icon="sales"><span data-i18n="nav.sales">Sales</span></a>
+        <a class="nav-item" href="customers.html" data-icon="customers"><span data-i18n="nav.customers">Customers</span></a>
+        <a class="nav-item is-demo-disabled" href="#" onclick="return false" title="Not included in this demo" data-icon="suppliers"><span data-i18n="nav.suppliers">Suppliers</span></a>
+        <a class="nav-item" href="reports.html" data-icon="reports"><span data-i18n="nav.reports">Reports</span></a>
+        <a class="nav-item" href="settings.html" data-icon="settings"><span data-i18n="nav.settings">Settings</span></a>
+      </nav>
+      <div class="sidebar__footer">
+        <p>&copy; 2026 ArchTech IMS</p>
+        <p data-i18n="footer.rights">All rights reserved</p>
+      </div>
+    </aside>
+
+    <div class="main-column">
+      <!-- ============ Top bar ============ -->
+      <header class="topbar">
+        <button class="icon-btn" id="sidebarToggle" aria-label="Toggle sidebar" data-icon="menu"></button>
+        <div class="search-box">
+          <svg class="icon icon--muted" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.35-4.35"/></svg>
+          <input type="search" id="searchInput" data-i18n-placeholder="topbar.search" placeholder="Search by Invoice No., Customer, Mobile...">
+          <kbd>F2</kbd>
+        </div>
+        <div class="topbar__right">
+          <button class="branch-pill">
+            <span>Gulshan Branch</span>
+            <svg class="icon icon--14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <button class="lang-toggle" id="langToggle">
+            <span id="langBn">বাংলা</span><span id="langEn" class="is-active">EN</span>
+          </button>
+          <button class="icon-btn notif-btn" aria-label="Notifications" data-icon="bell">
+            <span class="notif-badge">8</span>
+          </button>
+          <button class="profile-btn">
+            <span class="avatar" data-icon="user" data-icon-size="18"></span>
+            <span class="profile-text"><strong>Admin User</strong><small data-i18n="topbar.role">Administrator</small></span>
+            <svg class="icon icon--14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- ============ Screen content ============ -->
+      <main class="main-content">
+
+        <div class="page-header">
+          <div>
+            <nav class="breadcrumb">
+              <a href="#" data-i18n="breadcrumb.home">Home</a><span>&rsaquo;</span>
+              <a href="#" data-i18n="breadcrumb.sales">Sales</a><span>&rsaquo;</span>
+              <span data-i18n="breadcrumb.invoiceDetail">Invoice Detail</span>
+            </nav>
+            <h1 class="page-title" data-i18n="page.title">VAT / Invoice Detail</h1>
+          </div>
+          <div class="page-header__actions">
+            <span class="state-switch" id="stateSwitch">
+              <button type="button" class="is-active" data-state="authorized">Authorized</button>
+              <button type="button" data-state="pending">SDC Pending</button>
+            </span>
+            <a class="btn btn--outline" href="#">
+              <svg class="icon icon--16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m11 18-6-6 6-6"/></svg>
+              <span data-i18n="page.back">Back to Invoices</span>
+            </a>
+            <button class="btn btn--outline" id="btnPrint">
+              <svg class="icon icon--16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V4h12v5"/><rect x="4.5" y="9" width="15" height="7" rx="1.5"/><path d="M6 14.5h12V20H6v-5.5Z"/></svg>
+              <span data-i18n="page.print">Print Invoice</span>
+            </button>
+            <button class="btn btn--outline" id="btnDownload">
+              <svg class="icon icon--16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11.5"/><path d="m7 10.5 5 5 5-5"/><path d="M4.5 19.5h15"/></svg>
+              <span data-i18n="page.download">Download (PDF)</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="invoice-layout">
+          <!-- ============ Main column ============ -->
+          <div class="invoice-main">
+
+            <section class="card invoice-info">
+              <div class="invoice-info__col">
+                <div class="field">
+                  <span class="field__label" data-i18n="f.invoiceNo">Invoice No.</span>
+                  <span class="field__value field__value--mono field__value--lg" id="invoiceNoValue">
+                    INV-2026-0724-0012
+                    <button class="copy-btn" id="copyBtn" title="Copy invoice number" aria-label="Copy invoice number">
+                      <svg class="icon icon--14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="8.5" y="8.5" width="11" height="11" rx="1.5"/><path d="M15 8.5V6A1.5 1.5 0 0 0 13.5 4.5H6A1.5 1.5 0 0 0 4.5 6v7.5A1.5 1.5 0 0 0 6 15h2.5"/></svg>
+                    </button>
+                  </span>
+                </div>
+                <div class="field">
+                  <span class="field__label" data-i18n="f.invoiceDate">Invoice Date</span>
+                  <span class="field__value">04 Jul 2026 10:18 AM</span>
+                </div>
+                <div class="field">
+                  <span class="field__label" data-i18n="f.salesType">Sales Type</span>
+                  <span class="badge badge--sage" data-i18n="f.retailSale">Retail Sale</span>
+                </div>
+                <div class="field">
+                  <span class="field__label" data-i18n="f.paymentType">Payment Type</span>
+                  <span class="field__value" data-i18n="f.multiple">Multiple</span>
+                </div>
+              </div>
+
+              <div class="invoice-info__col">
+                <div class="field">
+                  <span class="field__label" data-i18n="f.customer">Customer</span>
+                  <span class="field__value field__value--icon">
+                    <svg class="icon icon--14 icon--muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.25" r="3.5"/><path d="M4.75 20a7.25 7.25 0 0 1 14.5 0"/></svg>
+                    <span data-i18n="f.walkIn">Walk-in Customer</span>
+                  </span>
+                </div>
+                <div class="field"><span class="field__label" data-i18n="f.mobile">Mobile</span><span class="field__value">—</span></div>
+                <div class="field"><span class="field__label" data-i18n="f.nidTin">NID / TIN</span><span class="field__value">—</span></div>
+                <div class="field"><span class="field__label" data-i18n="f.address">Address</span><span class="field__value">—</span></div>
+              </div>
+
+              <div class="invoice-info__col">
+                <div class="field"><span class="field__label" data-i18n="f.branch">Branch</span><span class="field__value">Gulshan Branch</span></div>
+                <div class="field"><span class="field__label" data-i18n="f.cashier">Cashier</span><span class="field__value">Admin User</span></div>
+                <div class="field">
+                  <span class="field__label" data-i18n="f.sdcStatus">SDC Status</span>
+                  <span class="field__value field__value--success" id="sdcStatusValue">
+                    <svg class="icon icon--14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="m8.5 12.3 2.4 2.4 4.8-5.4"/></svg>
+                    <span data-i18n="f.authorized">Authorized</span>
+                  </span>
+                </div>
+                <div class="field"><span class="field__label" data-i18n="f.sdcRefNo">SDC Ref No.</span><span class="field__value field__value--mono" id="sdcRefValue">SDC-260704-102415-0012</span></div>
+              </div>
+            </section>
+
+            <section class="card">
+              <h2 class="card__title" data-i18n="items.title">Items</h2>
+              <div class="table-scroll">
+                <table class="items-table">
+                  <thead>
+                    <tr>
+                      <th class="col-no">#</th>
+                      <th data-i18n="items.item">Item / Description</th>
+                      <th data-i18n="items.hsCode">HS Code</th>
+                      <th class="num" data-i18n="items.qty">Qty</th>
+                      <th class="num" data-i18n="items.unitPrice">Unit Price (Excl. VAT)</th>
+                      <th class="num" data-i18n="items.disc">Disc. (৳)</th>
+                      <th class="num" data-i18n="items.vatRate">VAT Rate</th>
+                      <th class="num" data-i18n="items.vatAmount">VAT Amount (৳)</th>
+                      <th class="num" data-i18n="items.lineTotal">Line Total (Incl. VAT)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td class="col-no">1</td><td><span class="item-name">Coca Cola 500ml</span><span class="item-sku">COL-500</span></td><td class="mono">54490011</td><td class="num mono">2</td><td class="num mono">45.00</td><td class="num mono">0.00</td><td class="num mono">15%</td><td class="num mono">13.50</td><td class="num mono strong">103.50</td></tr>
+                    <tr><td class="col-no">2</td><td><span class="item-name">Lays Classic Chips 40g</span><span class="item-sku">CHP-040</span></td><td class="mono">19059090</td><td class="num mono">1</td><td class="num mono">30.00</td><td class="num mono">0.00</td><td class="num mono">15%</td><td class="num mono">4.50</td><td class="num mono strong">34.50</td></tr>
+                    <tr><td class="col-no">3</td><td><span class="item-name">Dettol Soap 125g</span><span class="item-sku">DET-125</span></td><td class="mono">34011990</td><td class="num mono">2</td><td class="num mono">40.00</td><td class="num mono">0.00</td><td class="num mono">15%</td><td class="num mono">12.00</td><td class="num mono strong">92.00</td></tr>
+                    <tr><td class="col-no">4</td><td><span class="item-name">Colgate Toothpaste 100g</span><span class="item-sku">COLG-100</span></td><td class="mono">33061000</td><td class="num mono">1</td><td class="num mono">60.00</td><td class="num mono">0.00</td><td class="num mono">15%</td><td class="num mono">9.00</td><td class="num mono strong">69.00</td></tr>
+                    <tr><td class="col-no">5</td><td><span class="item-name">Tissue Box (200 Pulls)</span><span class="item-sku">TIS-200</span></td><td class="mono">48182000</td><td class="num mono">1</td><td class="num mono">70.00</td><td class="num mono">0.00</td><td class="num mono">15%</td><td class="num mono">10.50</td><td class="num mono strong">80.50</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="items-table__footer">
+                <span data-i18n="items.totalItems">Total Items: 5</span>
+                <span data-i18n="items.totalQty">Total Quantity: 7</span>
+              </div>
+            </section>
+
+            <div class="two-col">
+              <section class="card">
+                <h2 class="card__title" data-i18n="tax.title">Tax &amp; Regulatory Info</h2>
+                <div class="kv-list">
+                  <div class="kv"><span data-i18n="tax.deviceId">SDC Device ID</span><span class="mono">ATIMS-SDC-01</span></div>
+                  <div class="kv"><span data-i18n="tax.authTime">SDC Authorization Time</span><span id="authTimeValue">04 Jul 2026 10:18 AM</span></div>
+                  <div class="kv"><span data-i18n="tax.invoiceType">NBR Invoice Type</span><span data-i18n="tax.regular">Regular</span></div>
+                  <div class="kv"><span data-i18n="tax.syncStatus">NBR Sync Status</span>
+                    <span class="text-success" id="nbrSyncValue">
+                      <svg class="icon icon--14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="m8.5 12.3 2.4 2.4 4.8-5.4"/></svg>
+                      <span data-i18n="tax.synced">Synced</span>
+                    </span>
+                  </div>
+                  <div class="kv"><span data-i18n="tax.binNo">VAT Registration No. (BIN)</span><span class="mono">123456789-0203</span></div>
+                  <div class="kv"><span data-i18n="tax.mushakNo">Mushak No.</span><span>—</span></div>
+                </div>
+              </section>
+              <section class="card">
+                <h2 class="card__title" data-i18n="add.title">Additional Info</h2>
+                <div class="kv-list">
+                  <div class="kv"><span data-i18n="add.note">Note</span><span>—</span></div>
+                  <div class="kv"><span data-i18n="add.reference">Reference</span><span>—</span></div>
+                  <div class="kv"><span data-i18n="add.createdBy">Created By</span><span>Admin User</span></div>
+                  <div class="kv"><span data-i18n="add.createdAt">Created At</span><span>04 Jul 2026 10:18 AM</span></div>
+                  <div class="kv"><span data-i18n="add.lastUpdated">Last Updated</span><span>04 Jul 2026 10:18 AM</span></div>
+                </div>
+              </section>
+            </div>
+          </div>
+
+          <!-- ============ Side column ============ -->
+          <div class="invoice-side">
+            <section class="card">
+              <h2 class="card__title" data-i18n="sum.title">Invoice Summary</h2>
+              <div class="summary-list">
+                <div class="summary-row"><span data-i18n="sum.subtotal">Total (Excl. VAT)</span><span class="mono">৳ 330.00</span></div>
+                <div class="summary-row"><span data-i18n="sum.vat">Total VAT</span><span class="mono">৳ 49.50</span></div>
+                <hr class="summary-divider">
+                <div class="summary-row summary-row--grand"><span data-i18n="sum.grand">Grand Total (Incl. VAT)</span><span class="mono">৳ 379.50</span></div>
+                <div class="summary-row"><span data-i18n="sum.rounding">Rounding Adjustment</span><span class="mono">৳ 0.00</span></div>
+              </div>
+              <div class="payable-banner"><span data-i18n="sum.payable">Payable Amount</span><span class="mono">৳ 379.50</span></div>
+            </section>
+
+            <section class="card">
+              <h2 class="card__title" data-i18n="vat.title">VAT Breakdown</h2>
+              <table class="vat-table">
+                <thead><tr><th data-i18n="items.vatRate">VAT Rate</th><th class="num" data-i18n="vat.taxable">Taxable Amount</th><th class="num" data-i18n="items.vatAmount">VAT Amount (৳)</th></tr></thead>
+                <tbody><tr><td>15%</td><td class="num mono">330.00</td><td class="num mono">49.50</td></tr></tbody>
+                <tfoot><tr><td data-i18n="vat.total">Total</td><td class="num mono strong">330.00</td><td class="num mono strong">49.50</td></tr></tfoot>
+              </table>
+            </section>
+
+            <div class="status-banner status-banner--success" id="statusBanner">
+              <svg class="icon icon--18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 5 6v5.5c0 5 3 8 7 9.5 4-1.5 7-4.5 7-9.5V6l-7-2.5Z"/><path d="m9 12.2 2.1 2.1 4-4.4"/></svg>
+              <div>
+                <strong data-i18n="banner.validTitle">This invoice is SDC authorized and valid.</strong>
+                <span id="bannerSub" data-i18n="banner.authorizedOn">Authorized on: 04 Jul 2026 10:18 AM</span>
+              </div>
+            </div>
+
+            <section class="card">
+              <h2 class="card__title" data-i18n="pay.title">Payments</h2>
+              <div class="payments-list">
+                <div class="payment-row">
+                  <span class="payment-row__label">
+                    <svg class="icon icon--14 icon--muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6.5" width="19" height="11" rx="1.5"/><circle cx="12" cy="12" r="2.5"/></svg>
+                    <span data-i18n="pay.cash">Cash</span>
+                  </span>
+                  <span class="mono">৳ 350.00</span>
+                </div>
+                <div class="payment-row">
+                  <span class="payment-row__label">
+                    <svg class="icon icon--14 icon--muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6.5" width="19" height="11" rx="1.5"/><circle cx="12" cy="12" r="2.5"/></svg>
+                    <span data-i18n="pay.bkash">bKash</span>
+                  </span>
+                  <span class="mono">৳ 50.00</span>
+                </div>
+                <div class="payment-row">
+                  <span class="payment-row__label text-danger">
+                    <svg class="icon icon--14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4.5v5h5"/><path d="M4.6 15a8 8 0 1 0 1.7-8.4L4 9.5"/></svg>
+                    <span data-i18n="pay.change">Change Return</span>
+                  </span>
+                  <span class="mono text-danger">৳ 20.50</span>
+                </div>
+              </div>
+              <div class="payments-total"><span data-i18n="pay.totalPaid">Total Paid</span><span class="mono">৳ 379.50</span></div>
+            </section>
+
+            <section class="card">
+              <h2 class="card__title" data-i18n="act.title">Invoice Actions</h2>
+              <div class="actions-grid">
+                <button class="action-tile" data-action="Return / Refund" data-endpoint="POST /sales/{id}/refund">
+                  <svg class="icon icon--danger" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4.5v5h5"/><path d="M4.6 15a8 8 0 1 0 1.7-8.4L4 9.5"/></svg>
+                  <span data-i18n="act.refund">Return / Refund</span>
+                </button>
+                <button class="action-tile" data-action="Credit Note" data-endpoint="POST /sales/{id}/credit-note">
+                  <svg class="icon icon--info" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3.5h7l4 4V20a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z"/><path d="M14 3.5V8h4"/><path d="M8.5 12.5h7M8.5 15.75h7M8.5 9.25h2.5"/></svg>
+                  <span data-i18n="act.creditNote">Credit Note</span>
+                </button>
+                <button class="action-tile" data-action="Send via SMS" data-endpoint="POST /sales/{id}/notify (sms)">
+                  <svg class="icon icon--success" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5h16v10.5H8.5L4 20V5.5Z"/><path d="M8 9.5h8M8 12.5h5"/></svg>
+                  <span data-i18n="act.sms">Send via SMS</span>
+                </button>
+                <button class="action-tile" data-action="Email Invoice" data-endpoint="POST /sales/{id}/notify (email)">
+                  <svg class="icon icon--marigold" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="13" rx="1.75"/><path d="m4 7 8 6 8-6"/></svg>
+                  <span data-i18n="act.email">Email Invoice</span>
+                </button>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <div class="footer-notice">
+          <svg class="icon icon--14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="m8.5 12.3 2.4 2.4 4.8-5.4"/></svg>
+          <span data-i18n="footer.notice">This is a system generated invoice and does not require signature.</span>
+        </div>
+      </main>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+// ---- Inline icon set (mirrors app/Core/Icons.php) ----
+var ICONS = {
+  dashboard: '<rect x="3" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.5"/>',
+  pos: '<path d="M3 8h18l-1.5 9.5a2 2 0 0 1-2 1.7H6.5a2 2 0 0 1-2-1.7L3 8Z"/><path d="M8 8V6a4 4 0 0 1 8 0v2"/><path d="M8 12h8"/>',
+  inventory: '<path d="M12 3 3 7.5 12 12l9-4.5L12 3Z"/><path d="M3 7.5v9L12 21l9-4.5v-9"/><path d="M12 12v9"/>',
+  purchases: '<path d="M4 7h16l-1.3 11a2 2 0 0 1-2 1.8H7.3a2 2 0 0 1-2-1.8L4 7Z"/><path d="M9 11V6a3 3 0 0 1 6 0v5"/>',
+  sales: '<path d="M4 19V10"/><path d="M10 19V5"/><path d="M16 19v-7"/><path d="M20 19V3"/>',
+  customers: '<circle cx="9" cy="8" r="3.25"/><path d="M2.75 19a6.25 6.25 0 0 1 12.5 0"/><path d="M16 5.5c1.7.4 3 2 3 3.9 0 1.9-1.3 3.4-3 3.9"/><path d="M15.5 12.9c2.6.5 4.75 2.5 4.75 5.6"/>',
+  suppliers: '<path d="M3 16V6.5A1.5 1.5 0 0 1 4.5 5h8A1.5 1.5 0 0 1 14 6.5V16"/><path d="M14 10h3.5L21 13.5V16"/><path d="M3 16h1.5"/><circle cx="7.5" cy="18" r="2"/><circle cx="17" cy="18" r="2"/>',
+  reports: '<path d="M4 19.5h16"/><rect x="6" y="12" width="3" height="6"/><rect x="11" y="8" width="3" height="10"/><rect x="16" y="4.5" width="3" height="13.5"/>',
+  settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 13.5a1.8 1.8 0 0 0 .36 1.98l.07.07a2.17 2.17 0 1 1-3.07 3.07l-.07-.07a1.8 1.8 0 0 0-1.98-.36 1.8 1.8 0 0 0-1.1 1.65V20a2.17 2.17 0 1 1-4.33 0v-.1a1.8 1.8 0 0 0-1.17-1.65 1.8 1.8 0 0 0-1.98.36l-.07.07a2.17 2.17 0 1 1-3.07-3.07l.07-.07a1.8 1.8 0 0 0 .36-1.98 1.8 1.8 0 0 0-1.65-1.1H2a2.17 2.17 0 1 1 0-4.33h.1A1.8 1.8 0 0 0 3.75 8.7a1.8 1.8 0 0 0-.36-1.98l-.07-.07A2.17 2.17 0 1 1 6.4 3.58l.07.07a1.8 1.8 0 0 0 1.98.36H8.6A1.8 1.8 0 0 0 9.7 2.36V2.2a2.17 2.17 0 1 1 4.33 0v.1a1.8 1.8 0 0 0 1.1 1.65 1.8 1.8 0 0 0 1.98-.36l.07-.07a2.17 2.17 0 1 1 3.07 3.07l-.07.07a1.8 1.8 0 0 0-.36 1.98v.15a1.8 1.8 0 0 0 1.65 1.1h.15a2.17 2.17 0 1 1 0 4.33h-.1a1.8 1.8 0 0 0-1.65 1.1Z"/>',
+  menu: '<path d="M3.5 6.5h17"/><path d="M3.5 12h17"/><path d="M3.5 17.5h17"/>',
+  bell: '<path d="M6 9a6 6 0 1 1 12 0c0 4.2 1.5 5.8 2 6.5H4c.5-.7 2-2.3 2-6.5Z"/><path d="M10 19a2 2 0 0 0 4 0"/>',
+  user: '<circle cx="12" cy="8.25" r="3.5"/><path d="M4.75 20a7.25 7.25 0 0 1 14.5 0"/>'
+};
+document.querySelectorAll('[data-icon]').forEach(function (el) {
+  var name = el.getAttribute('data-icon');
+  var size = el.getAttribute('data-icon-size') || 20;
+  var shape = ICONS[name];
+  if (!shape) return;
+  var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  var wrap = document.createElement('span');
+  wrap.innerHTML = '<svg class="icon" width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">' + shape + '</svg>';
+  el.insertBefore(wrap.firstChild, el.firstChild);
+});
+
+// ---- বাংলা / EN toggle ----
+var I18N = {
+  en: {
+    'app.tagline': 'Inventory Management System', 'footer.rights': 'All rights reserved',
+    'nav.dashboard': 'Dashboard', 'nav.pos': 'POS / Billing', 'nav.inventory': 'Inventory', 'nav.purchases': 'Purchases',
+    'nav.sales': 'Sales', 'nav.customers': 'Customers', 'nav.suppliers': 'Suppliers', 'nav.reports': 'Reports', 'nav.settings': 'Settings',
+    'topbar.role': 'Administrator', 'pulse.synced': 'Synced', 'pulse.sdcAuthorized': 'SDC Authorized', 'pulse.sdcPending': 'SDC Pending',
+    'pulse.lastUpdate': 'Last Update: 04 Jul 2026 10:18 AM', 'pulse.activeBranch': 'Active Branch:',
+    'breadcrumb.home': 'Home', 'breadcrumb.sales': 'Sales', 'breadcrumb.invoiceDetail': 'Invoice Detail',
+    'page.title': 'VAT / Invoice Detail', 'page.back': 'Back to Invoices', 'page.print': 'Print Invoice', 'page.download': 'Download (PDF)',
+    'f.invoiceNo': 'Invoice No.', 'f.invoiceDate': 'Invoice Date', 'f.salesType': 'Sales Type', 'f.retailSale': 'Retail Sale',
+    'f.paymentType': 'Payment Type', 'f.multiple': 'Multiple', 'f.customer': 'Customer', 'f.walkIn': 'Walk-in Customer',
+    'f.mobile': 'Mobile', 'f.nidTin': 'NID / TIN', 'f.address': 'Address', 'f.branch': 'Branch', 'f.cashier': 'Cashier',
+    'f.sdcStatus': 'SDC Status', 'f.authorized': 'Authorized', 'f.provisional': 'Provisional — SDC Pending', 'f.sdcRefNo': 'SDC Ref No.',
+    'items.title': 'Items', 'items.item': 'Item / Description', 'items.hsCode': 'HS Code', 'items.qty': 'Qty',
+    'items.unitPrice': 'Unit Price (Excl. VAT)', 'items.disc': 'Disc. (৳)', 'items.vatRate': 'VAT Rate', 'items.vatAmount': 'VAT Amount (৳)',
+    'items.lineTotal': 'Line Total (Incl. VAT)', 'items.totalItems': 'Total Items: 5', 'items.totalQty': 'Total Quantity: 7',
+    'tax.title': 'Tax & Regulatory Info', 'tax.deviceId': 'SDC Device ID', 'tax.authTime': 'SDC Authorization Time',
+    'tax.invoiceType': 'NBR Invoice Type', 'tax.regular': 'Regular', 'tax.syncStatus': 'NBR Sync Status', 'tax.synced': 'Synced',
+    'tax.pending': 'Pending', 'tax.binNo': 'VAT Registration No. (BIN)', 'tax.mushakNo': 'Mushak No.',
+    'add.title': 'Additional Info', 'add.note': 'Note', 'add.reference': 'Reference', 'add.createdBy': 'Created By',
+    'add.createdAt': 'Created At', 'add.lastUpdated': 'Last Updated',
+    'sum.title': 'Invoice Summary', 'sum.subtotal': 'Total (Excl. VAT)', 'sum.vat': 'Total VAT', 'sum.grand': 'Grand Total (Incl. VAT)',
+    'sum.rounding': 'Rounding Adjustment', 'sum.payable': 'Payable Amount',
+    'vat.title': 'VAT Breakdown', 'vat.taxable': 'Taxable Amount', 'vat.total': 'Total',
+    'banner.validTitle': 'This invoice is SDC authorized and valid.', 'banner.authorizedOn': 'Authorized on: 04 Jul 2026 10:18 AM',
+    'banner.provisionalTitle': 'Provisional — SDC Pending',
+    'banner.provisionalSub': 'This invoice is provisional. SDC authorization is queued and will complete automatically once the connection is back — no action needed.',
+    'pay.title': 'Payments', 'pay.cash': 'Cash', 'pay.bkash': 'bKash', 'pay.change': 'Change Return', 'pay.totalPaid': 'Total Paid',
+    'act.title': 'Invoice Actions', 'act.refund': 'Return / Refund', 'act.creditNote': 'Credit Note', 'act.sms': 'Send via SMS', 'act.email': 'Email Invoice',
+    'footer.notice': 'This is a system generated invoice and does not require signature.',
+    'topbar.search': 'Search by Invoice No., Customer, Mobile...',
+    'toast.queued': ' queued — will send once its endpoint is added to api-contract.yaml.',
+    'toast.copied': 'Invoice number copied.'
+  },
+  bn: {
+    'app.tagline': 'ইনভেন্টরি ম্যানেজমেন্ট সিস্টেম', 'footer.rights': 'সর্বস্বত্ব সংরক্ষিত',
+    'nav.dashboard': 'ড্যাশবোর্ড', 'nav.pos': 'পিওএস / বিলিং', 'nav.inventory': 'ইনভেন্টরি', 'nav.purchases': 'ক্রয়',
+    'nav.sales': 'বিক্রয়', 'nav.customers': 'গ্রাহক', 'nav.suppliers': 'সরবরাহকারী', 'nav.reports': 'রিপোর্ট', 'nav.settings': 'সেটিংস',
+    'topbar.role': 'প্রশাসক', 'pulse.synced': 'সিঙ্ক হয়েছে', 'pulse.sdcAuthorized': 'এসডিসি অনুমোদিত', 'pulse.sdcPending': 'এসডিসি অপেক্ষমাণ',
+    'pulse.lastUpdate': 'সর্বশেষ আপডেট: ০৪ জুলাই ২০২৬ ১০:১৮ AM', 'pulse.activeBranch': 'সক্রিয় শাখা:',
+    'breadcrumb.home': 'হোম', 'breadcrumb.sales': 'বিক্রয়', 'breadcrumb.invoiceDetail': 'চালান বিবরণ',
+    'page.title': 'ভ্যাট / চালান বিবরণ', 'page.back': 'চালান তালিকায় ফিরুন', 'page.print': 'চালান প্রিন্ট করুন', 'page.download': 'ডাউনলোড (পিডিএফ)',
+    'f.invoiceNo': 'চালান নং', 'f.invoiceDate': 'চালানের তারিখ', 'f.salesType': 'বিক্রয়ের ধরন', 'f.retailSale': 'খুচরা বিক্রয়',
+    'f.paymentType': 'পরিশোধের ধরন', 'f.multiple': 'একাধিক', 'f.customer': 'গ্রাহক', 'f.walkIn': 'ওয়াক-ইন গ্রাহক',
+    'f.mobile': 'মোবাইল', 'f.nidTin': 'এনআইডি / টিআইএন', 'f.address': 'ঠিকানা', 'f.branch': 'শাখা', 'f.cashier': 'ক্যাশিয়ার',
+    'f.sdcStatus': 'এসডিসি অবস্থা', 'f.authorized': 'অনুমোদিত', 'f.provisional': 'অস্থায়ী — এসডিসি অপেক্ষমাণ', 'f.sdcRefNo': 'এসডিসি রেফ নং',
+    'items.title': 'পণ্যসমূহ', 'items.item': 'পণ্য / বিবরণ', 'items.hsCode': 'এইচএস কোড', 'items.qty': 'পরিমাণ',
+    'items.unitPrice': 'একক মূল্য (ভ্যাট ব্যতীত)', 'items.disc': 'ছাড় (৳)', 'items.vatRate': 'ভ্যাট হার', 'items.vatAmount': 'ভ্যাট পরিমাণ (৳)',
+    'items.lineTotal': 'লাইন মোট (ভ্যাটসহ)', 'items.totalItems': 'মোট আইটেম: ৫', 'items.totalQty': 'মোট পরিমাণ: ৭',
+    'tax.title': 'কর ও নিয়ন্ত্রক তথ্য', 'tax.deviceId': 'এসডিসি ডিভাইস আইডি', 'tax.authTime': 'এসডিসি অনুমোদনের সময়',
+    'tax.invoiceType': 'এনবিআর চালানের ধরন', 'tax.regular': 'নিয়মিত', 'tax.syncStatus': 'এনবিআর সিঙ্ক অবস্থা', 'tax.synced': 'সিঙ্ক হয়েছে',
+    'tax.pending': 'অপেক্ষমাণ', 'tax.binNo': 'ভ্যাট নিবন্ধন নং (বিআইএন)', 'tax.mushakNo': 'মুসক নং',
+    'add.title': 'অতিরিক্ত তথ্য', 'add.note': 'নোট', 'add.reference': 'রেফারেন্স', 'add.createdBy': 'তৈরি করেছেন',
+    'add.createdAt': 'তৈরির সময়', 'add.lastUpdated': 'সর্বশেষ আপডেট',
+    'sum.title': 'চালান সারাংশ', 'sum.subtotal': 'মোট (ভ্যাট ব্যতীত)', 'sum.vat': 'মোট ভ্যাট', 'sum.grand': 'সর্বমোট (ভ্যাটসহ)',
+    'sum.rounding': 'রাউন্ডিং সমন্বয়', 'sum.payable': 'পরিশোধযোগ্য পরিমাণ',
+    'vat.title': 'ভ্যাট বিভাজন', 'vat.taxable': 'করযোগ্য পরিমাণ', 'vat.total': 'মোট',
+    'banner.validTitle': 'এই চালানটি এসডিসি দ্বারা অনুমোদিত ও বৈধ।', 'banner.authorizedOn': 'অনুমোদনের সময়: ০৪ জুলাই ২০২৬ ১০:১৮ AM',
+    'banner.provisionalTitle': 'অস্থায়ী — এসডিসি অপেক্ষমাণ',
+    'banner.provisionalSub': 'এই চালানটি অস্থায়ী। সংযোগ ফিরে এলে এসডিসি অনুমোদন স্বয়ংক্রিয়ভাবে সম্পন্ন হবে — কোনো পদক্ষেপের প্রয়োজন নেই।',
+    'pay.title': 'পরিশোধ', 'pay.cash': 'নগদ টাকা', 'pay.bkash': 'বিকাশ', 'pay.change': 'ভাংতি ফেরত', 'pay.totalPaid': 'সর্বমোট পরিশোধিত',
+    'act.title': 'চালান কার্যক্রম', 'act.refund': 'ফেরত / রিফান্ড', 'act.creditNote': 'ক্রেডিট নোট', 'act.sms': 'এসএমএসে পাঠান', 'act.email': 'ইমেইলে চালান পাঠান',
+    'footer.notice': 'এটি একটি সিস্টেম-জেনারেটেড চালান এবং এতে স্বাক্ষরের প্রয়োজন নেই।',
+    'topbar.search': 'চালান নং, গ্রাহক, মোবাইল দিয়ে খুঁজুন...',
+    'toast.queued': ' সারিবদ্ধ করা হয়েছে — এর এন্ডপয়েন্ট api-contract.yaml-এ যুক্ত হলে পাঠানো হবে।',
+    'toast.copied': 'চালান নম্বর কপি হয়েছে।'
+  }
+};
+var currentLang = 'en';
+function applyLang(lang) {
+  currentLang = lang;
+  document.documentElement.lang = lang;
+  var dict = I18N[lang];
+  document.querySelectorAll('[data-i18n]').forEach(function (el) {
+    var key = el.getAttribute('data-i18n');
+    if (dict[key] !== undefined) el.textContent = dict[key];
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(function (el) {
+    var key = el.getAttribute('data-i18n-placeholder');
+    if (dict[key] !== undefined) el.placeholder = dict[key];
+  });
+  document.getElementById('langBn').classList.toggle('is-active', lang === 'bn');
+  document.getElementById('langEn').classList.toggle('is-active', lang === 'en');
+  // Re-apply SDC-state-dependent text so it stays correct in the new language
+  applyState(currentState, true);
+}
+document.getElementById('langToggle').addEventListener('click', function () {
+  applyLang(currentLang === 'en' ? 'bn' : 'en');
+});
+
+// ---- SDC state toggle (authorized <-> provisional) — demo convenience ----
+var currentState = 'authorized';
+function applyState(state, skipToast) {
+  currentState = state;
+  var dict = I18N[currentLang];
+  var authorized = state === 'authorized';
+
+  document.querySelectorAll('#stateSwitch button').forEach(function (b) {
+    b.classList.toggle('is-active', b.getAttribute('data-state') === state);
+  });
+
+  document.getElementById('pulseSdcBadge').querySelector('span[data-i18n]').textContent = authorized ? dict['pulse.sdcAuthorized'] : dict['pulse.sdcPending'];
+  document.getElementById('pulseSdcBadge').classList.toggle('is-authorized', authorized);
+  document.getElementById('pulseSdcBadge').classList.toggle('is-pending', !authorized);
+
+  var sdcStatusValue = document.getElementById('sdcStatusValue');
+  sdcStatusValue.classList.toggle('field__value--success', authorized);
+  sdcStatusValue.querySelector('span[data-i18n]').textContent = authorized ? dict['f.authorized'] : dict['f.provisional'];
+  sdcStatusValue.querySelector('span[data-i18n]').setAttribute('data-i18n', authorized ? 'f.authorized' : 'f.provisional');
+  sdcStatusValue.style.color = authorized ? '' : 'var(--warning-text)';
+
+  document.getElementById('sdcRefValue').textContent = authorized ? 'SDC-260704-102415-0012' : '—';
+  document.getElementById('authTimeValue').textContent = authorized ? '04 Jul 2026 10:18 AM' : dict['tax.pending'];
+
+  var nbrSyncSpan = document.getElementById('nbrSyncValue');
+  nbrSyncSpan.classList.toggle('text-success', authorized);
+  nbrSyncSpan.classList.toggle('text-warning', !authorized);
+  nbrSyncSpan.querySelector('span[data-i18n]').textContent = authorized ? dict['tax.synced'] : dict['tax.pending'];
+  nbrSyncSpan.querySelector('span[data-i18n]').setAttribute('data-i18n', authorized ? 'tax.synced' : 'tax.pending');
+
+  var banner = document.getElementById('statusBanner');
+  banner.classList.toggle('status-banner--success', authorized);
+  banner.classList.toggle('status-banner--warning', !authorized);
+  banner.querySelector('strong').textContent = authorized ? dict['banner.validTitle'] : dict['banner.provisionalTitle'];
+  var sub = document.getElementById('bannerSub');
+  sub.textContent = authorized ? dict['banner.authorizedOn'] : dict['banner.provisionalSub'];
+  sub.setAttribute('data-i18n', authorized ? 'banner.authorizedOn' : 'banner.provisionalSub');
+}
+document.querySelectorAll('#stateSwitch button').forEach(function (btn) {
+  btn.addEventListener('click', function () { applyState(btn.getAttribute('data-state')); });
+});
+
+// ---- Print / Download (both use the browser's print flow — see chat notes) ----
+document.getElementById('btnPrint').addEventListener('click', function () { window.print(); });
+document.getElementById('btnDownload').addEventListener('click', function () { window.print(); });
+
+// ---- Copy invoice number ----
+document.getElementById('copyBtn').addEventListener('click', function () {
+  var btn = this;
+  var text = 'INV-2026-0724-0012';
+  var done = function () {
+    btn.classList.add('is-copied');
+    showToast(I18N[currentLang]['toast.copied']);
+    setTimeout(function () { btn.classList.remove('is-copied'); }, 1400);
+  };
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(done).catch(done);
+  } else {
+    done();
+  }
+});
+
+// ---- Toast for action tiles (honest "not wired to a real endpoint" state) ----
+var toastEl = document.getElementById('toast');
+var toastTimer;
+function showToast(msg) {
+  toastEl.textContent = msg;
+  toastEl.classList.add('is-visible');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function () { toastEl.classList.remove('is-visible'); }, 3000);
+}
+document.querySelectorAll('.action-tile').forEach(function (tile) {
+  tile.addEventListener('click', function () {
+    var label = tile.querySelector('span').textContent;
+    showToast(label + I18N[currentLang]['toast.queued']);
+  });
+});
+
+// ---- Sidebar toggle (narrow widths) ----
+document.getElementById('sidebarToggle').addEventListener('click', function () {
+  document.getElementById('appShell').classList.toggle('is-sidebar-open');
+});
+</script>
+</body>
+</html>

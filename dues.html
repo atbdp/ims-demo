@@ -1,0 +1,1895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Customer Dues / Receivables · ArchTech IMS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ==========================================================================
+   ArchTech IMS — Design Tokens
+   Source of truth: docs/design-prompts.md §1 "Design Token System".
+   The 6 vars in the first block are HEX-LOCKED — never change them per
+   screen. Everything else derives from them.
+   ========================================================================== */
+
+:root {
+  /* ---- Locked brand tokens (docs/design-prompts.md) ---- */
+  --deep-teal:    #0E3B36;
+  --marigold:     #E8A33D;
+  --off-white:    #F7F5F0;
+  --charcoal-ink: #1E2422;
+  --alert-red:    #C1483B;
+  --soft-sage:    #B9CDB0;
+
+  /* ---- Derived brand tints (tonal steps of the locked tokens only) ---- */
+  --deep-teal-600:  #14524B;
+  --deep-teal-700:  #0B302B;
+  --deep-teal-tint: #E7EFEE;   /* deep-teal at ~6% on off-white, for hovers */
+  --marigold-600:   #D6922E;
+  --marigold-tint:  #FBF0DD;
+  --sage-tint:      #EDF3EA;
+  --alert-red-600:  #A93C31;
+  --alert-red-tint: #F8E9E7;
+  --ink-muted:      #5B6560;   /* charcoal-ink lightened for secondary text */
+  --ink-faint:      #8B948F;
+  --border-sage:    #DCE6D8;   /* thin borders — never heavy shadows, per design doc */
+
+  /* ---- Screen-local accent extension ----------------------------------
+     The locked palette has no purple/blue/gray. The approved Dues screen
+     mockup uses a small set of colored icon tiles (KPI cards + Quick
+     Actions) that go beyond the 6 brand tokens. Flagging clearly: these
+     are decorative-only, never used for primary buttons or brand chrome,
+     and should be confirmed with whoever owns the design system.
+     ----------------------------------------------------------------- */
+  --tint-red-bg:    #FBEAE7; --tint-red-fg:    #C1483B; /* = alert-red */
+  --tint-green-bg:  #E4F2E4; --tint-green-fg:  #3E8E52;
+  --tint-green2-bg: #E1F3E9; --tint-green2-fg: #2F9E6B;
+  --tint-orange-bg: #FCEEDC; --tint-orange-fg: #D6822E;
+  --tint-violet-bg: #ECE9F6; --tint-violet-fg: #7A6BB0;
+  --tint-blue-bg:   #E4EEF7; --tint-blue-fg:   #3E7CB8;
+  --tint-gray-bg:   #EEF0EE; --tint-gray-fg:   #5B6560;
+
+  /* ---- Aging scale: green -> brand marigold -> brand alert-red ---- */
+  --aging-current:    #3E8E52;
+  --aging-1-30:       #E8A33D; /* = marigold */
+  --aging-31-60:      #DB7F3B;
+  --aging-61-90:      #CC5A3E;
+  --aging-90-plus:    #C1483B; /* = alert-red */
+  --aging-current-bg:  #E4F2E4;
+  --aging-1-30-bg:     #FBF0DD;
+  --aging-31-60-bg:    #FBE7DA;
+  --aging-61-90-bg:    #FBE0D9;
+  --aging-90-plus-bg:  #F8E9E7;
+
+  /* ---- Typography ----
+     Sora/General Sans (headers), Inter/IBM Plex Sans (body), IBM Plex Mono
+     (tabular numbers, invoice/SKU strings), Noto Sans Bengali (bn labels). */
+  --font-display: 'Sora', 'General Sans', 'Noto Sans Bengali', system-ui, sans-serif;
+  --font-body:    'Inter', 'IBM Plex Sans', 'Noto Sans Bengali', system-ui, sans-serif;
+  --font-mono:    'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+  /* ---- Spacing / radius / layout ---- */
+  --radius: 8px;
+  --radius-sm: 6px;
+  --radius-lg: 12px;
+  --sidebar-w: 240px;
+  --sidebar-w-collapsed: 72px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* Thin sage borders, not heavy shadows — design doc is explicit about this. */
+  --shadow-card: 0 1px 2px rgba(30, 36, 34, 0.04);
+  --shadow-popover: 0 8px 24px rgba(14, 59, 54, 0.14);
+}
+/* ==========================================================================
+   ArchTech IMS — Shared App Shell
+   Pulse strip + sidebar + top bar are the two anchors every screen keeps
+   (docs/design-prompts.md §1). Screen-specific layout lives in its own
+   {screen}.css, never here.
+   ========================================================================== */
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--off-white);
+  color: var(--charcoal-ink);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+img, svg { display: block; }
+button { font-family: inherit; }
+a { color: inherit; text-decoration: none; }
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  color: var(--charcoal-ink);
+  margin: 0;
+}
+
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+/* ---------------------------------------------------------------------- */
+/* Shell grid                                                              */
+/* ---------------------------------------------------------------------- */
+
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.app-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Pulse strip — full-bleed, sits above sidebar + content                  */
+/* ---------------------------------------------------------------------- */
+
+.pulse-strip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  padding: 8px 24px;
+  background: #FFFFFF;
+  border-bottom: 1px solid var(--border-sage);
+  font-size: 12.5px;
+  color: var(--ink-muted);
+  flex-wrap: wrap;
+}
+
+.pulse-item { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.pulse-item strong { color: var(--charcoal-ink); font-weight: 600; }
+
+.pulse-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--aging-current);
+  box-shadow: 0 0 0 3px var(--tint-green2-bg);
+  flex-shrink: 0;
+}
+.pulse-dot.is-offline { background: var(--alert-red); box-shadow: 0 0 0 3px var(--tint-red-bg); }
+.pulse-dot.is-syncing { background: var(--marigold); box-shadow: 0 0 0 3px var(--marigold-tint); }
+
+.pulse-branch { color: var(--marigold-600); font-weight: 700; }
+.pulse-spacer { flex: 1; }
+
+/* ---------------------------------------------------------------------- */
+/* Sidebar                                                                  */
+/* ---------------------------------------------------------------------- */
+
+.sidebar {
+  width: var(--sidebar-w);
+  flex-shrink: 0;
+  background: var(--deep-teal);
+  color: #EAF2F0;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-5) 0;
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 var(--space-5) var(--space-5);
+  margin-bottom: var(--space-3);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.sidebar-logo {
+  width: 42px; height: 42px;
+  border-radius: var(--radius-sm);
+  background: var(--marigold);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.sidebar-logo svg { width: 24px; height: 24px; }
+
+.sidebar-brand-text .name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 16px;
+  color: #FFFFFF;
+  line-height: 1.2;
+}
+.sidebar-brand-text .tagline {
+  font-size: 11px;
+  color: #9FC1BB;
+  margin-top: 2px;
+}
+
+.sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  color: #C7DCD7;
+  font-size: 13.5px;
+  font-weight: 500;
+  position: relative;
+  cursor: pointer;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+}
+.nav-item svg { width: 18px; height: 18px; flex-shrink: 0; opacity: 0.9; }
+.nav-item:hover { background: rgba(255,255,255,0.06); color: #FFFFFF; }
+
+.nav-item.is-active {
+  background: rgba(232, 163, 61, 0.16);
+  color: #FFFFFF;
+}
+.nav-item.is-active::before {
+  content: '';
+  position: absolute;
+  left: -12px; top: 6px; bottom: 6px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--marigold);
+}
+
+.nav-item .chevron { margin-left: auto; width: 14px; height: 14px; opacity: 0.7; }
+
+.sidebar-footer {
+  padding: var(--space-4) var(--space-5) 0;
+  margin-top: var(--space-3);
+  border-top: 1px solid rgba(255,255,255,0.08);
+  font-size: 11px;
+  color: #7FA39D;
+}
+.sidebar-footer .theme-toggle {
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.06);
+  color: #EAF2F0;
+  font-size: 12px;
+  cursor: pointer;
+  border: none;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Main column + top bar                                                   */
+/* ---------------------------------------------------------------------- */
+
+.main-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: 14px 28px;
+  background: var(--off-white);
+  border-bottom: 1px solid var(--border-sage);
+}
+
+.icon-btn {
+  width: 38px; height: 38px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-sage);
+  background: #FFFFFF;
+  cursor: pointer;
+  color: var(--charcoal-ink);
+  flex-shrink: 0;
+  position: relative;
+}
+.icon-btn:hover { background: var(--sage-tint); }
+.icon-btn svg { width: 18px; height: 18px; }
+
+.topbar-search {
+  flex: 1;
+  max-width: 640px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #FFFFFF;
+  border: 1px solid var(--border-sage);
+  border-radius: var(--radius);
+  padding: 0 14px;
+  height: 42px;
+}
+.topbar-search svg { width: 17px; height: 17px; color: var(--ink-faint); flex-shrink: 0; }
+.topbar-search input {
+  border: none; outline: none; flex: 1; font-size: 13.5px;
+  background: transparent; color: var(--charcoal-ink); font-family: var(--font-body);
+}
+.topbar-search input::placeholder { color: var(--ink-faint); }
+.kbd-hint {
+  font-size: 11px; color: var(--ink-faint);
+  border: 1px solid var(--border-sage); border-radius: 4px;
+  padding: 2px 6px; font-family: var(--font-mono);
+}
+
+.topbar-spacer { flex: 1; }
+
+.branch-select {
+  display: flex; align-items: center; gap: 8px;
+  border: 1px solid var(--border-sage); border-radius: var(--radius);
+  padding: 0 12px; height: 42px; background: #FFFFFF;
+  font-size: 13.5px; font-weight: 600; cursor: pointer;
+}
+.branch-select svg.chevron { width: 14px; height: 14px; color: var(--ink-faint); }
+
+.lang-toggle {
+  display: flex; align-items: center; border: 1px solid var(--border-sage);
+  border-radius: 999px; overflow: hidden; height: 38px; background: #FFFFFF;
+}
+.lang-toggle button {
+  border: none; background: transparent; padding: 0 14px; height: 100%;
+  font-size: 12.5px; font-weight: 700; color: var(--ink-muted); cursor: pointer;
+}
+.lang-toggle button.is-active { background: var(--deep-teal); color: #FFFFFF; border-radius: 999px; }
+
+.notif-badge {
+  position: absolute; top: -5px; right: -5px;
+  background: var(--alert-red); color: #FFFFFF;
+  font-size: 10px; font-weight: 700; line-height: 1;
+  padding: 3px 5px; border-radius: 999px; border: 2px solid var(--off-white);
+}
+
+.profile-chip {
+  display: flex; align-items: center; gap: 10px; cursor: pointer;
+}
+.profile-avatar {
+  width: 38px; height: 38px; border-radius: 50%;
+  background: var(--deep-teal-tint); color: var(--deep-teal);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 13px; flex-shrink: 0;
+}
+.profile-meta { line-height: 1.25; }
+.profile-meta .pname { font-weight: 700; font-size: 13.5px; color: var(--charcoal-ink); }
+.profile-meta .prole { font-size: 11.5px; color: var(--ink-faint); }
+
+.main-content {
+  flex: 1;
+  min-width: 0;
+  padding: 24px 28px 40px;
+  overflow-x: hidden;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Buttons                                                                  */
+/* ---------------------------------------------------------------------- */
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  height: 40px; padding: 0 16px;
+  border-radius: var(--radius);
+  font-size: 13.5px; font-weight: 600;
+  cursor: pointer; border: 1px solid transparent;
+  font-family: var(--font-body);
+  white-space: nowrap;
+}
+.btn svg { width: 16px; height: 16px; }
+.btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.btn-primary { background: var(--deep-teal); color: #FFFFFF; }
+.btn-primary:hover:not(:disabled) { background: var(--deep-teal-600); }
+
+.btn-accent { background: var(--marigold); color: #38260B; }
+.btn-accent:hover:not(:disabled) { background: var(--marigold-600); }
+
+.btn-outline { background: #FFFFFF; color: var(--charcoal-ink); border-color: var(--border-sage); }
+.btn-outline:hover:not(:disabled) { background: var(--sage-tint); }
+
+.btn-ghost { background: transparent; color: var(--ink-muted); }
+.btn-ghost:hover:not(:disabled) { background: var(--sage-tint); color: var(--charcoal-ink); }
+
+.btn-danger { background: #FFFFFF; color: var(--alert-red); border-color: #EFC9C2; }
+.btn-danger:hover:not(:disabled) { background: var(--tint-red-bg); }
+
+.btn-sm { height: 32px; padding: 0 12px; font-size: 12.5px; }
+
+/* ---------------------------------------------------------------------- */
+/* Cards                                                                    */
+/* ---------------------------------------------------------------------- */
+
+.card {
+  background: #FFFFFF;
+  border: 1px solid var(--border-sage);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Badges / status pills                                                   */
+/* ---------------------------------------------------------------------- */
+
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 11px; font-weight: 700;
+  white-space: nowrap;
+}
+.badge.b-current    { background: var(--aging-current-bg);   color: var(--aging-current); }
+.badge.b-1-30        { background: var(--aging-1-30-bg);      color: #9C6A1E; }
+.badge.b-31-60       { background: var(--aging-31-60-bg);     color: var(--aging-31-60); }
+.badge.b-61-90       { background: var(--aging-61-90-bg);     color: var(--aging-61-90); }
+.badge.b-90-plus     { background: var(--aging-90-plus);      color: #FFFFFF; }
+
+/* ---------------------------------------------------------------------- */
+/* Tables                                                                   */
+/* ---------------------------------------------------------------------- */
+
+.table-wrap { overflow-x: auto; }
+table.data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.data-table thead th {
+  text-align: left;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--ink-faint);
+  font-weight: 700;
+  padding: 12px 10px;
+  border-bottom: 1px solid var(--border-sage);
+}
+.data-table tbody td {
+  padding: 13px 10px;
+  border-bottom: 1px solid #EFEFEA;
+  color: var(--charcoal-ink);
+  vertical-align: middle;
+}
+.data-table tbody tr:hover { background: var(--off-white); }
+.data-table tbody tr:last-child td { border-bottom: none; }
+
+/* ---------------------------------------------------------------------- */
+/* Form controls (filter bar selects/inputs)                               */
+/* ---------------------------------------------------------------------- */
+
+.field-select, .field-input {
+  height: 40px;
+  border: 1px solid var(--border-sage);
+  border-radius: var(--radius);
+  background: #FFFFFF;
+  font-size: 13px;
+  color: var(--charcoal-ink);
+  padding: 0 12px;
+  font-family: var(--font-body);
+}
+.field-select { padding-right: 28px; appearance: none; background-repeat: no-repeat; background-position: right 10px center; }
+.field-input:focus, .field-select:focus { outline: 2px solid var(--deep-teal-tint); border-color: var(--deep-teal); }
+
+/* ---------------------------------------------------------------------- */
+/* Dropdown menu (kebab actions)                                           */
+/* ---------------------------------------------------------------------- */
+
+.menu-pop {
+  position: absolute;
+  min-width: 190px;
+  background: #FFFFFF;
+  border: 1px solid var(--border-sage);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-popover);
+  padding: 6px;
+  z-index: 60;
+}
+.menu-pop button {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; text-align: left;
+  border: none; background: none; cursor: pointer;
+  padding: 9px 10px; border-radius: var(--radius-sm);
+  font-size: 13px; color: var(--charcoal-ink);
+}
+.menu-pop button:hover { background: var(--sage-tint); }
+.menu-pop button svg { width: 15px; height: 15px; color: var(--ink-muted); }
+.menu-pop button.danger { color: var(--alert-red); }
+.menu-pop button.danger svg { color: var(--alert-red); }
+
+/* ---------------------------------------------------------------------- */
+/* Modal + toast                                                           */
+/* ---------------------------------------------------------------------- */
+
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(14, 59, 54, 0.35);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100; padding: 20px;
+}
+.modal-card {
+  background: #FFFFFF; border-radius: var(--radius-lg);
+  width: 100%; max-width: 420px;
+  padding: var(--space-6);
+  box-shadow: var(--shadow-popover);
+}
+.modal-card h3 { font-size: 17px; margin-bottom: 4px; }
+.modal-card .modal-sub { font-size: 12.5px; color: var(--ink-muted); margin-bottom: var(--space-5); }
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: var(--space-5); }
+
+.toast-stack {
+  position: fixed; bottom: 24px; right: 24px; z-index: 200;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.toast {
+  background: var(--charcoal-ink); color: #FFFFFF;
+  padding: 12px 16px; border-radius: var(--radius);
+  font-size: 13px; box-shadow: var(--shadow-popover);
+  display: flex; align-items: center; gap: 10px;
+  min-width: 240px;
+}
+.toast.is-error { background: var(--alert-red-600); }
+.toast.is-success { background: var(--deep-teal); }
+
+/* ---------------------------------------------------------------------- */
+/* Utility                                                                  */
+/* ---------------------------------------------------------------------- */
+
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap;
+}
+.skeleton {
+  background: linear-gradient(90deg, #EFEEE8 25%, #F6F5F1 37%, #EFEEE8 63%);
+  background-size: 400% 100%;
+  animation: skeleton-loading 1.4s ease infinite;
+  border-radius: var(--radius-sm);
+}
+@keyframes skeleton-loading {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+@media (max-width: 900px) {
+  .sidebar { position: fixed; left: -260px; top: 0; bottom: 0; z-index: 90; transition: left .2s ease; }
+  .sidebar.is-open { left: 0; }
+  .main-content { padding: 16px; }
+  .topbar { padding: 12px 16px; flex-wrap: wrap; }
+  .topbar-search { order: 3; max-width: 100%; }
+}
+/* ==========================================================================
+   Customer Dues / Receivables — screen-specific layout.
+   Shell (sidebar/topbar/pulse-strip), buttons, cards, badges, table live in
+   app.css. This file is only the grid this one screen is arranged in.
+   ========================================================================== */
+
+.dues-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+  flex-wrap: wrap;
+}
+.dues-header h1 { font-size: 24px; font-weight: 700; }
+.dues-header .dues-subtitle { color: var(--ink-muted); font-size: 13.5px; margin-top: 6px; }
+.dues-header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* ---- KPI cards ---- */
+
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+.kpi-card { padding: var(--space-5); }
+.kpi-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.kpi-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.kpi-icon svg { width: 20px; height: 20px; }
+.kpi-label { font-size: 12.5px; color: var(--ink-muted); font-weight: 600; margin-bottom: 6px; }
+.kpi-value { font-family: var(--font-display); font-size: 22px; font-weight: 700; color: var(--charcoal-ink); }
+.kpi-trend { display: flex; align-items: center; gap: 5px; font-size: 12px; margin-top: 8px; font-weight: 600; }
+.kpi-trend svg { width: 12px; height: 12px; }
+.kpi-trend.is-up-bad, .kpi-trend.is-up { color: var(--alert-red); }
+.kpi-trend.is-down, .kpi-trend.is-down-good { color: var(--aging-current); }
+.kpi-trend.is-flat, .kpi-trend.is-none { color: var(--ink-faint); }
+.kpi-trend .vs-label { color: var(--ink-faint); font-weight: 500; }
+
+/* ---- Filter bar ---- */
+
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: var(--space-5);
+}
+.filter-bar .field-input.search { flex: 1 1 220px; min-width: 200px; }
+.filter-bar .field-select { min-width: 150px; }
+.filter-bar-spacer { flex: 1; }
+
+/* ---- Two-column body: table + right rail ---- */
+
+.dues-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 290px;
+  gap: var(--space-5);
+  align-items: start;
+}
+
+.dues-table-card { overflow: hidden; }
+
+.cell-name { font-weight: 600; }
+.cell-phone { color: var(--ink-muted); font-size: 13px; }
+.cell-amount { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.cell-outstanding { font-family: var(--font-mono); color: var(--alert-red); font-weight: 700; }
+.cell-days { font-family: var(--font-mono); }
+.cell-date { color: var(--ink-muted); font-size: 13px; }
+
+.row-actions { display: flex; align-items: center; gap: 6px; position: relative; }
+
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  border-top: 1px solid var(--border-sage);
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+.pager { display: flex; align-items: center; gap: 6px; }
+.pager button {
+  min-width: 32px; height: 32px; padding: 0 6px;
+  border: 1px solid var(--border-sage); background: #FFFFFF;
+  border-radius: var(--radius-sm); cursor: pointer; font-size: 12.5px;
+  color: var(--charcoal-ink);
+}
+.pager button.is-active { background: var(--deep-teal); border-color: var(--deep-teal); color: #FFFFFF; }
+.pager button:disabled { opacity: 0.4; cursor: not-allowed; }
+.pager .ellipsis { padding: 0 4px; color: var(--ink-faint); }
+
+/* ---- Right rail ---- */
+
+.rail-card { padding: var(--space-5); }
+.rail-card + .rail-card { margin-top: var(--space-4); }
+.rail-title { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-4); }
+.rail-title h3 { font-size: 14.5px; font-weight: 700; }
+.rail-title a { font-size: 12px; color: var(--deep-teal); font-weight: 700; }
+
+.donut-wrap { display: flex; flex-direction: column; align-items: center; gap: var(--space-4); }
+.donut {
+  position: relative;
+  width: 160px; height: 160px;
+  border-radius: 50%;
+  background: var(--border-sage);
+  flex-shrink: 0;
+}
+.donut-hole {
+  position: absolute; inset: 22px;
+  background: #FFFFFF; border-radius: 50%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 8px;
+}
+.donut-center-value { font-family: var(--font-display); font-size: 15px; font-weight: 700; line-height: 1.3; }
+.donut-center-label { font-size: 11px; color: var(--ink-muted); margin-top: 2px; }
+
+.aging-legend { width: 100%; display: flex; flex-direction: column; gap: 10px; }
+.aging-legend-row { display: flex; align-items: center; gap: 8px; font-size: 12.5px; }
+.legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.legend-label { flex: 1; color: var(--charcoal-ink); font-weight: 500; }
+.legend-value { text-align: right; }
+.legend-amount { font-family: var(--font-mono); font-weight: 700; font-size: 12.5px; }
+.legend-pct { color: var(--ink-faint); font-size: 11px; }
+
+.top-list { display: flex; flex-direction: column; gap: 12px; }
+.top-row { display: flex; align-items: center; gap: 10px; }
+.top-rank { font-size: 12px; color: var(--ink-faint); width: 14px; flex-shrink: 0; }
+.top-main { flex: 1; min-width: 0; }
+.top-name { font-size: 12.5px; font-weight: 600; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.top-bar-track { height: 5px; border-radius: 999px; background: var(--tint-red-bg); overflow: hidden; }
+.top-bar-fill { height: 100%; background: var(--alert-red); border-radius: 999px; }
+.top-amount { font-family: var(--font-mono); font-size: 12px; font-weight: 700; white-space: nowrap; margin-left: 8px; }
+
+.quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.quick-action-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 12px 6px;
+  border: 1px solid var(--border-sage); border-radius: var(--radius);
+  background: #FFFFFF; cursor: pointer;
+  text-align: center;
+}
+.quick-action-btn:hover { background: var(--off-white); }
+.quick-action-icon {
+  width: 34px; height: 34px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+}
+.quick-action-icon svg { width: 17px; height: 17px; }
+.quick-action-label { font-size: 10.5px; font-weight: 600; color: var(--charcoal-ink); line-height: 1.25; }
+
+/* ---- Empty / loading / error states ---- */
+
+.table-state { padding: 48px 20px; text-align: center; color: var(--ink-muted); font-size: 13.5px; }
+.table-state svg { width: 34px; height: 34px; margin: 0 auto 12px; color: var(--ink-faint); }
+
+/* ---- Responsive ---- */
+
+@media (max-width: 1200px) {
+  .kpi-row { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 1080px) {
+  .dues-body { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .kpi-row { grid-template-columns: repeat(2, 1fr); }
+  .quick-actions-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* ---- Print ---- */
+@media print {
+  .pulse-strip, .sidebar, .topbar, .filter-bar, .dues-header-actions,
+  .rail, .pagination-bar, .row-actions, .toast-stack, .modal-overlay { display: none !important; }
+  .dues-body { display: block; }
+  .main-content { padding: 0; }
+  .card { border: none; box-shadow: none; }
+}
+.is-demo-disabled { opacity: .45; cursor: not-allowed !important; }
+.is-demo-disabled:hover { background: transparent !important; color: inherit !important; }
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+  <div class="pulse-strip" id="pulse-strip">
+    <div class="pulse-item">
+      <span class="pulse-dot" id="pulse-dot"></span>
+      <strong id="pulse-status-label" data-i18n="pulse_synced">Synced</strong>
+    </div>
+    <div class="pulse-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14M22 4L12 14.01l-3-3"/></svg>
+      <span id="pulse-sdc-label" data-i18n="pulse_sdc_authorized">SDC Authorized</span>
+    </div>
+    <div class="pulse-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"/></svg>
+      <span data-i18n="pulse_last_update">Last Update:</span>
+      <strong id="pulse-last-update">04 Jul 2026 10:24 AM</strong>
+    </div>
+    <div class="pulse-spacer"></div>
+    <div class="pulse-item">
+      <span data-i18n="pulse_active_branch">Active Branch:</span>
+      <strong class="pulse-branch" id="pulse-branch-name">Gulshan Branch</strong>
+    </div>
+  </div>
+
+  <div class="app-body">
+
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <div class="sidebar-logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1-6h16l1 6M3 9v11a1 1 0 001 1h16a1 1 0 001-1V9M3 9h18M9 21v-6h6v6"/></svg></div>
+        <div class="sidebar-brand-text">
+          <div class="name" data-i18n="app_name">ArchTech IMS</div>
+          <div class="tagline" data-i18n="app_tagline">Inventory Management System</div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav" id="sidebar-nav">
+        <a class="nav-item" href="dashboard.html" data-nav><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13h8V3H3v10zM13 21h8V11h-8v10zM13 3v6h8V3h-8zM3 21h8v-6H3v6z"/></svg><span data-i18n="nav_dashboard">Dashboard</span></a>
+        <a class="nav-item is-demo-disabled" href="#" onclick="return false" title="Not included in this demo" data-nav><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9h20M6 15h4M2 6a2 2 0 012-2h16a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/></svg><span data-i18n="nav_pos_billing">POS / Billing</span></a>
+        <a class="nav-item is-demo-disabled" href="#" onclick="return false" title="Not included in this demo" data-nav><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18M7 15l4-4 3 3 5-6"/></svg><span data-i18n="nav_sales">Sales</span></a>
+        <a class="nav-item" href="sales-history.html" data-nav><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 109-9M3 3v6h6M12 7v5l4 2"/></svg><span data-i18n="nav_sales_history">Sales History</span></a>
+        <a class="nav-item" href="inventory.html" data-nav><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8L12 3 3 8l9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8"/></svg><span data-i18n="nav_inventory">Inventory</span></a>
+        <a class="nav-item" href="customers.html" data-nav><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg><span data-i18n="nav_customers">Customers</span></a>
+        <a class="nav-item is-active" href="dues.html" data-nav><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg><span data-i18n="nav_dues">Dues / Receivables</span></a>
+        <a class="nav-item is-demo-disabled" href="#" onclick="return false" title="Not included in this demo" data-nav><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h2l2.4 12.4a2 2 0 002 1.6h9.2a2 2 0 002-1.6L22 8H6M9 21a1 1 0 100-2 1 1 0 000 2zM20 21a1 1 0 100-2 1 1 0 000 2z"/></svg><span data-i18n="nav_suppliers">Suppliers</span></a>
+        <a class="nav-item" href="purchase-orders.html" data-nav><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18M3 7l1.5 12a2 2 0 002 1.8h11a2 2 0 002-1.8L21 7M8 7V4a2 2 0 012-2h4a2 2 0 012 2v3"/></svg><span data-i18n="nav_purchases">Purchases</span></a>
+        <a class="nav-item" href="reports.html" data-nav><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg><span data-i18n="nav_reports">Reports</span></a>
+        <a class="nav-item" href="vat-invoice.html" data-nav><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7h6M9 11h6M9 15h4M5 3h14a1 1 0 011 1v16l-3-2-3 2-3-2-3 2-3-2-3 2V4a1 1 0 011-1z"/></svg><span data-i18n="nav_tax_vat">Taxes &amp; VAT</span></a>
+        <a class="nav-item" href="settings.html" data-nav>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3 3 0 100-6 3 3 0 000 6zM19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09A1.65 1.65 0 0015.4 4.6a1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          <span data-i18n="nav_settings">Settings</span>
+          <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div>&copy; 2026 <span data-i18n="app_name">ArchTech IMS</span></div>
+        <div data-i18n="footer_rights">All rights reserved</div>
+        <button class="theme-toggle" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17a5 5 0 100-10 5 5 0 000 10zM12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+          <span data-i18n="theme_light">Light</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+      </div>
+    </aside>
+
+    <div class="main-col">
+      <header class="topbar">
+        <button class="icon-btn" id="sidebar-toggle" type="button" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+
+        <div class="topbar-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 19a8 8 0 100-16 8 8 0 000 16zM21 21l-4.35-4.35"/></svg>
+          <input type="text" id="global-search" data-i18n-placeholder="search_placeholder" placeholder="Search by customer name, phone, invoice no. or NID…">
+          <span class="kbd-hint">F2</span>
+        </div>
+
+        <div class="topbar-spacer"></div>
+
+        <div class="branch-select" id="branch-select">
+          <span id="topbar-branch-name">Gulshan Branch</span>
+          <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+
+        <div class="lang-toggle">
+          <button type="button" id="lang-bn" data-lang="bn">বাংলা</button>
+          <button type="button" id="lang-en" data-lang="en" class="is-active">EN</button>
+        </div>
+
+        <button class="icon-btn" type="button" aria-label="Notifications">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9zM13.73 21a2 2 0 01-3.46 0"/></svg>
+          <span class="notif-badge">8</span>
+        </button>
+
+        <div class="profile-chip">
+          <div class="profile-avatar">A</div>
+          <div class="profile-meta">
+            <div class="pname">Admin User</div>
+            <div class="prole" data-i18n="admin_role">Administrator</div>
+          </div>
+          <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+      </header>
+
+      <main class="main-content">
+
+        <div class="dues-header">
+          <div>
+            <h1 data-i18n="dues_title">Customer Dues / Receivables</h1>
+            <p class="dues-subtitle" data-i18n="dues_subtitle">Track outstanding amounts customers owe to the business.</p>
+          </div>
+          <div class="dues-header-actions">
+            <button class="btn btn-outline" id="btn-export" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg><span data-i18n="btn_export">Export</span></button>
+            <button class="btn btn-outline" id="btn-print" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6v-8z"/></svg><span data-i18n="btn_print">Print</span></button>
+            <button class="btn btn-primary" id="btn-send-reminder-bulk" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg><span data-i18n="btn_send_reminder">Send Reminder</span></button>
+          </div>
+        </div>
+
+        <div class="kpi-row" id="kpi-row">
+          <div class="card kpi-card" data-kpi="total_outstanding" data-unit="currency">
+            <div class="kpi-top"><div class="kpi-icon" style="background:var(--tint-red-bg); color:var(--tint-red-fg)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 010-4h14v4M3 5v14a2 2 0 002 2h16v-5M18 12a2 2 0 000 4h4v-4h-4z"/></svg></div></div>
+            <div class="kpi-label" data-i18n="kpi_total_outstanding">Total Outstanding</div>
+            <div class="kpi-value" data-field="value">—</div>
+            <div class="kpi-trend is-none" data-field="trend"></div>
+          </div>
+          <div class="card kpi-card" data-kpi="total_customers_owing" data-unit="count">
+            <div class="kpi-top"><div class="kpi-icon" style="background:var(--tint-green2-bg); color:var(--tint-green2-fg)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg></div></div>
+            <div class="kpi-label" data-i18n="kpi_customers_owing">Total Customers Owing</div>
+            <div class="kpi-value" data-field="value">—</div>
+            <div class="kpi-trend is-none" data-field="trend"></div>
+          </div>
+          <div class="card kpi-card" data-kpi="overdue_30plus" data-unit="currency">
+            <div class="kpi-top"><div class="kpi-icon" style="background:var(--tint-orange-bg); color:var(--tint-orange-fg)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"/></svg></div></div>
+            <div class="kpi-label" data-i18n="kpi_overdue_30plus">Overdue Amount (30+ Days)</div>
+            <div class="kpi-value" data-field="value">—</div>
+            <div class="kpi-trend is-none" data-field="trend"></div>
+          </div>
+          <div class="card kpi-card" data-kpi="average_collection_days" data-unit="days">
+            <div class="kpi-top"><div class="kpi-icon" style="background:var(--tint-violet-bg); color:var(--tint-violet-fg)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a10 10 0 100-20 10 10 0 000 20zM12 6v6l4 2"/></svg></div></div>
+            <div class="kpi-label" data-i18n="kpi_avg_collection">Average Collection Days</div>
+            <div class="kpi-value" data-field="value">—</div>
+            <div class="kpi-trend is-none" data-field="trend"></div>
+          </div>
+          <div class="card kpi-card" data-kpi="collected_this_month" data-unit="currency">
+            <div class="kpi-top"><div class="kpi-icon" style="background:var(--tint-green-bg); color:var(--tint-green-fg)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14M22 4L12 14.01l-3-3"/></svg></div></div>
+            <div class="kpi-label" data-i18n="kpi_collected_month">Collected This Month</div>
+            <div class="kpi-value" data-field="value">—</div>
+            <div class="kpi-trend is-none" data-field="trend"></div>
+          </div>
+        </div>
+
+        <div class="filter-bar">
+          <input type="text" class="field-input search" id="filter-search" data-i18n-placeholder="filter_search_customers" placeholder="Search customers…">
+          <select class="field-select" id="filter-branch"><option value="" data-i18n="filter_all_branches">All Branches</option></select>
+          <select class="field-select" id="filter-salesperson"><option value="" data-i18n="filter_all_salespersons">All Salespersons</option></select>
+          <select class="field-select" id="filter-status">
+            <option value="all" data-i18n="filter_all_status">All Status</option>
+            <option value="current" data-i18n="filter_status_current">Current</option>
+            <option value="overdue" data-i18n="filter_status_overdue">Overdue</option>
+          </select>
+          <select class="field-select" id="filter-aging">
+            <option value="all" data-i18n="filter_all_aging">All Aging</option>
+            <option value="current" data-i18n="filter_aging_current">Current</option>
+            <option value="overdue_1_30" data-i18n="filter_aging_1_30">1-30 Days</option>
+            <option value="overdue_31_60" data-i18n="filter_aging_31_60">31-60 Days</option>
+            <option value="overdue_61_90" data-i18n="filter_aging_61_90">61-90 Days</option>
+            <option value="overdue_90_plus" data-i18n="filter_aging_90_plus">90+ Days</option>
+          </select>
+          <button class="btn btn-outline btn-sm" id="btn-filters-toggle" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg><span data-i18n="btn_filters">Filters</span></button>
+          <button class="btn btn-ghost btn-sm" id="btn-reset" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg><span data-i18n="btn_reset">Reset</span></button>
+        </div>
+
+        <div class="dues-body">
+          <div class="card dues-table-card">
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th data-i18n="col_hash">#</th>
+                    <th data-i18n="col_customer_name">Customer Name</th>
+                    <th data-i18n="col_phone">Phone</th>
+                    <th data-i18n="col_total_sales">Total Sales (৳)</th>
+                    <th data-i18n="col_total_paid">Total Paid (৳)</th>
+                    <th data-i18n="col_outstanding">Outstanding (৳)</th>
+                    <th data-i18n="col_overdue_days">Overdue (Days)</th>
+                    <th data-i18n="col_status">Status</th>
+                    <th data-i18n="col_last_transaction">Last Transaction</th>
+                    <th data-i18n="col_actions">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="dues-table-body">
+                  <tr><td colspan="10" class="table-state">Loading…</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="pagination-bar">
+              <div id="pagination-summary">—</div>
+              <div style="display:flex;align-items:center;gap:16px;">
+                <select class="field-select" id="per-page-select" style="height:34px;">
+                  <option value="10">10 <span data-i18n="per_page_label">per page</span></option>
+                  <option value="25">25 <span data-i18n="per_page_label">per page</span></option>
+                  <option value="50">50 <span data-i18n="per_page_label">per page</span></option>
+                  <option value="100">100 <span data-i18n="per_page_label">per page</span></option>
+                </select>
+                <div class="pager" id="pager"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="rail">
+            <div class="card rail-card">
+              <div class="rail-title"><h3 data-i18n="aging_summary_title">Aging Summary</h3></div>
+              <div class="donut-wrap">
+                <div class="donut" id="aging-donut"></div>
+                <div class="aging-legend" id="aging-legend"></div>
+              </div>
+            </div>
+
+            <div class="card rail-card">
+              <div class="rail-title">
+                <h3 data-i18n="top_outstanding_title">Top Outstanding Customers</h3>
+                <a href="#" data-i18n="view_all">View All</a>
+              </div>
+              <div class="top-list" id="top-outstanding-list"></div>
+            </div>
+
+            <div class="card rail-card">
+              <div class="rail-title"><h3 data-i18n="quick_actions_title">Quick Actions</h3></div>
+              <div class="quick-actions-grid">
+                <button class="quick-action-btn" id="qa-send-reminder" type="button">
+                  <div class="quick-action-icon" style="background:var(--tint-green2-bg); color:var(--tint-green2-fg)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2zM22 6l-10 7L2 6"/></svg></div>
+                  <div class="quick-action-label" data-i18n="quick_send_reminder">Send Reminder</div>
+                </button>
+                <button class="quick-action-btn" id="qa-send-sms" type="button">
+                  <div class="quick-action-icon" style="background:var(--tint-violet-bg); color:var(--tint-violet-fg)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg></div>
+                  <div class="quick-action-label" data-i18n="quick_send_sms">Send SMS Reminder</div>
+                </button>
+                <button class="quick-action-btn" id="qa-statement" type="button">
+                  <div class="quick-action-icon" style="background:var(--tint-orange-bg); color:var(--tint-orange-fg)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zM14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg></div>
+                  <div class="quick-action-label" data-i18n="quick_statement_report">Statement Report</div>
+                </button>
+                <button class="quick-action-btn" id="qa-export" type="button">
+                  <div class="quick-action-icon" style="background:var(--tint-blue-bg); color:var(--tint-blue-fg)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg></div>
+                  <div class="quick-action-label" data-i18n="quick_export_dues">Export Dues List</div>
+                </button>
+                <button class="quick-action-btn" id="qa-settings" type="button">
+                  <div class="quick-action-icon" style="background:var(--tint-gray-bg); color:var(--tint-gray-fg)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3 3 0 100-6 3 3 0 000 6zM19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09A1.65 1.65 0 0015.4 4.6a1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></div>
+                  <div class="quick-action-label" data-i18n="quick_dues_settings">Dues Settings</div>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="collect-modal" style="display:none;">
+  <div class="modal-card">
+    <h3 data-i18n="modal_collect_title">Collect Payment</h3>
+    <p class="modal-sub" id="collect-modal-sub"></p>
+    <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;" data-i18n="modal_collect_amount">Amount Received (৳)</label>
+    <input type="number" min="0" step="0.01" class="field-input" id="collect-amount" style="width:100%;margin-bottom:14px;">
+    <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;" data-i18n="modal_collect_method">Payment Method</label>
+    <select class="field-select" id="collect-method" style="width:100%;">
+      <option value="cash" data-i18n="method_cash">Cash</option>
+      <option value="bkash" data-i18n="method_bkash">bKash</option>
+      <option value="nagad" data-i18n="method_nagad">Nagad</option>
+      <option value="rocket" data-i18n="method_rocket">Rocket</option>
+      <option value="upay" data-i18n="method_upay">Upay</option>
+      <option value="card" data-i18n="method_card">Card</option>
+    </select>
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="collect-cancel" type="button" data-i18n="modal_cancel">Cancel</button>
+      <button class="btn btn-accent" id="collect-submit" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg><span data-i18n="modal_collect_submit">Record Payment</span></button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-stack" id="toast-stack"></div>
+<script>
+/* ==========================================================================
+   ArchTech IMS — Customer Dues / Receivables — self-contained demo
+   Same CSS/markup/logic as the real PHP + MySQL build, with an in-memory
+   mock of GET/POST /api/v1/dues standing in for the live backend so this
+   single file is fully interactive without a server.
+   ========================================================================== */
+(function () {
+  'use strict';
+
+  // ------------------------------------------------------------------
+  // i18n
+  // ------------------------------------------------------------------
+  var I18N = {
+    en: {
+      app_name: 'ArchTech IMS', app_tagline: 'Inventory Management System', footer_rights: 'All rights reserved', theme_light: 'Light',
+      nav_dashboard: 'Dashboard', nav_pos_billing: 'POS / Billing', nav_sales: 'Sales', nav_sales_history: 'Sales History',
+      nav_inventory: 'Inventory', nav_customers: 'Customers', nav_dues: 'Dues / Receivables', nav_suppliers: 'Suppliers',
+      nav_purchases: 'Purchases', nav_reports: 'Reports', nav_tax_vat: 'Taxes & VAT', nav_settings: 'Settings',
+      pulse_synced: 'Synced', pulse_syncing: 'Syncing…', pulse_offline: 'Offline',
+      pulse_sdc_authorized: 'SDC Authorized', pulse_last_update: 'Last Update:', pulse_active_branch: 'Active Branch:',
+      search_placeholder: 'Search by customer name, phone, invoice no. or NID…', admin_role: 'Administrator',
+      dues_title: 'Customer Dues / Receivables', dues_subtitle: 'Track outstanding amounts customers owe to the business.',
+      btn_export: 'Export', btn_print: 'Print', btn_send_reminder: 'Send Reminder',
+      kpi_total_outstanding: 'Total Outstanding', kpi_customers_owing: 'Total Customers Owing', kpi_overdue_30plus: 'Overdue Amount (30+ Days)',
+      kpi_avg_collection: 'Average Collection Days', kpi_collected_month: 'Collected This Month', kpi_no_baseline: 'No prior data yet',
+      filter_search_customers: 'Search customers…', filter_all_branches: 'All Branches', filter_all_salespersons: 'All Salespersons',
+      filter_all_status: 'All Status', filter_status_current: 'Current', filter_status_overdue: 'Overdue',
+      filter_all_aging: 'All Aging', filter_aging_current: 'Current', filter_aging_1_30: '1-30 Days', filter_aging_31_60: '31-60 Days',
+      filter_aging_61_90: '61-90 Days', filter_aging_90_plus: '90+ Days', btn_filters: 'Filters', btn_reset: 'Reset',
+      status_current: 'Current', status_1_30: 'Overdue 1-30', status_31_60: 'Overdue 31-60', status_61_90: 'Overdue 61-90', status_90_plus: 'Overdue 90+',
+      legend_current: 'Current (0-30 Days)', legend_1_30: 'Overdue 1-30 Days', legend_31_60: 'Overdue 31-60 Days', legend_61_90: 'Overdue 61-90 Days', legend_90_plus: 'Overdue 90+ Days',
+      col_hash: '#', col_customer_name: 'Customer Name', col_phone: 'Phone', col_total_sales: 'Total Sales (৳)', col_total_paid: 'Total Paid (৳)',
+      col_outstanding: 'Outstanding (৳)', col_overdue_days: 'Overdue (Days)', col_status: 'Status', col_last_transaction: 'Last Transaction', col_actions: 'Actions',
+      table_loading: 'Loading dues…', table_empty: 'No customers match these filters.', table_error: 'Could not load dues. Please try again.',
+      action_collect: 'Collect Payment', action_remind: 'Send Reminder', action_statement: 'View Statement',
+      aging_summary_title: 'Aging Summary', aging_total_outstanding: 'Total Outstanding', top_outstanding_title: 'Top Outstanding Customers', view_all: 'View All',
+      quick_actions_title: 'Quick Actions', quick_send_reminder: 'Send Reminder', quick_send_sms: 'Send SMS Reminder',
+      quick_statement_report: 'Statement Report', quick_export_dues: 'Export Dues List', quick_dues_settings: 'Dues Settings',
+      per_page_label: 'per page', modal_collect_title: 'Collect Payment', modal_collect_amount: 'Amount Received (৳)', modal_collect_method: 'Payment Method',
+      modal_collect_submit: 'Record Payment', modal_cancel: 'Cancel', method_cash: 'Cash', method_card: 'Card', method_bkash: 'bKash',
+      method_nagad: 'Nagad', method_rocket: 'Rocket', method_upay: 'Upay',
+      toast_reminder_queued: 'Reminder queued and will send shortly.', toast_payment_recorded: 'Payment recorded.',
+      vs_last_month: 'vs Last Month', view_details: 'View details', more_actions: 'More actions', close: 'Close',
+      not_built_reports: 'Statement Report lives in the Reports module (not part of this demo).',
+      not_built_settings: 'Dues Settings lives in the Settings module (not part of this demo).',
+      showing: 'Showing', to: 'to', of: 'of', entries: 'entries', oldest_invoice: '(oldest invoice)',
+      multi_due_note: 'This customer has multiple open invoices — Collect Payment applies to the oldest one first.',
+      enter_valid_amount: 'Enter a valid amount.', amount_exceeds: 'Amount exceeds the outstanding balance for this due.',
+      nothing_to_export: 'Nothing to export yet.', exported: 'Exported', customers_word: 'customers.',
+      no_overdue: 'No overdue customers to remind.', confirm_bulk_remind: 'Send a payment reminder to',
+      overdue_customers_q: 'overdue customer(s)?', reminders_queued_for: 'Reminders queued for', of_word: 'of',
+    },
+    bn: {
+      app_name: 'আর্চটেক আইএমএস', app_tagline: 'ইনভেন্টরি ম্যানেজমেন্ট সিস্টেম', footer_rights: 'সর্বস্বত্ব সংরক্ষিত', theme_light: 'লাইট',
+      nav_dashboard: 'ড্যাশবোর্ড', nav_pos_billing: 'পিওএস / বিলিং', nav_sales: 'বিক্রয়', nav_sales_history: 'বিক্রয়ের ইতিহাস',
+      nav_inventory: 'ইনভেন্টরি', nav_customers: 'কাস্টমার', nav_dues: 'বাকি / পাওনা', nav_suppliers: 'সরবরাহকারী',
+      nav_purchases: 'ক্রয়', nav_reports: 'রিপোর্ট', nav_tax_vat: 'ট্যাক্স ও ভ্যাট', nav_settings: 'সেটিংস',
+      pulse_synced: 'সিঙ্ক সম্পন্ন', pulse_syncing: 'সিঙ্ক হচ্ছে…', pulse_offline: 'অফলাইন',
+      pulse_sdc_authorized: 'এসডিসি অনুমোদিত', pulse_last_update: 'সর্বশেষ আপডেট:', pulse_active_branch: 'সক্রিয় শাখা:',
+      search_placeholder: 'কাস্টমারের নাম, ফোন, ইনভয়েস নং বা এনআইডি দিয়ে খুঁজুন…', admin_role: 'অ্যাডমিনিস্ট্রেটর',
+      dues_title: 'কাস্টমার বাকি / পাওনা', dues_subtitle: 'ব্যবসার কাছে কাস্টমারদের বকেয়া পরিমাণ ট্র্যাক করুন।',
+      btn_export: 'এক্সপোর্ট', btn_print: 'প্রিন্ট', btn_send_reminder: 'রিমাইন্ডার পাঠান',
+      kpi_total_outstanding: 'মোট বকেয়া', kpi_customers_owing: 'মোট বাকিদার কাস্টমার', kpi_overdue_30plus: 'মেয়াদোত্তীর্ণ পরিমাণ (৩০+ দিন)',
+      kpi_avg_collection: 'গড় আদায়ের দিন', kpi_collected_month: 'এই মাসে আদায়', kpi_no_baseline: 'পূর্ববর্তী তথ্য নেই',
+      filter_search_customers: 'কাস্টমার খুঁজুন…', filter_all_branches: 'সকল শাখা', filter_all_salespersons: 'সকল সেলসপারসন',
+      filter_all_status: 'সকল স্ট্যাটাস', filter_status_current: 'চলতি', filter_status_overdue: 'মেয়াদোত্তীর্ণ',
+      filter_all_aging: 'সকল মেয়াদ', filter_aging_current: 'চলতি', filter_aging_1_30: '১-৩০ দিন', filter_aging_31_60: '৩১-৬০ দিন',
+      filter_aging_61_90: '৬১-৯০ দিন', filter_aging_90_plus: '৯০+ দিন', btn_filters: 'ফিল্টার', btn_reset: 'রিসেট',
+      status_current: 'চলতি', status_1_30: 'মেয়াদোত্তীর্ণ ১-৩০', status_31_60: 'মেয়াদোত্তীর্ণ ৩১-৬০', status_61_90: 'মেয়াদোত্তীর্ণ ৬১-৯০', status_90_plus: 'মেয়াদোত্তীর্ণ ৯০+',
+      legend_current: 'চলতি (০-৩০ দিন)', legend_1_30: 'মেয়াদোত্তীর্ণ ১-৩০ দিন', legend_31_60: 'মেয়াদোত্তীর্ণ ৩১-৬০ দিন', legend_61_90: 'মেয়াদোত্তীর্ণ ৬১-৯০ দিন', legend_90_plus: 'মেয়াদোত্তীর্ণ ৯০+ দিন',
+      col_hash: '#', col_customer_name: 'কাস্টমারের নাম', col_phone: 'ফোন', col_total_sales: 'মোট বিক্রয় (৳)', col_total_paid: 'মোট পরিশোধিত (৳)',
+      col_outstanding: 'বকেয়া (৳)', col_overdue_days: 'মেয়াদোত্তীর্ণ (দিন)', col_status: 'স্ট্যাটাস', col_last_transaction: 'সর্বশেষ লেনদেন', col_actions: 'অ্যাকশন',
+      table_loading: 'লোড হচ্ছে…', table_empty: 'এই ফিল্টারে কোনো কাস্টমার পাওয়া যায়নি।', table_error: 'লোড করা যায়নি।',
+      action_collect: 'পেমেন্ট আদায় করুন', action_remind: 'রিমাইন্ডার পাঠান', action_statement: 'স্টেটমেন্ট দেখুন',
+      aging_summary_title: 'মেয়াদ সারাংশ', aging_total_outstanding: 'মোট বকেয়া', top_outstanding_title: 'শীর্ষ বাকিদার কাস্টমার', view_all: 'সব দেখুন',
+      quick_actions_title: 'দ্রুত কার্যক্রম', quick_send_reminder: 'রিমাইন্ডার পাঠান', quick_send_sms: 'এসএমএস রিমাইন্ডার',
+      quick_statement_report: 'স্টেটমেন্ট রিপোর্ট', quick_export_dues: 'বকেয়া তালিকা এক্সপোর্ট', quick_dues_settings: 'বকেয়া সেটিংস',
+      per_page_label: 'প্রতি পৃষ্ঠায়', modal_collect_title: 'পেমেন্ট আদায়', modal_collect_amount: 'গৃহীত পরিমাণ (৳)', modal_collect_method: 'পেমেন্ট মাধ্যম',
+      modal_collect_submit: 'পেমেন্ট রেকর্ড করুন', modal_cancel: 'বাতিল', method_cash: 'নগদ', method_card: 'কার্ড', method_bkash: 'বিকাশ',
+      method_nagad: 'নগদ (Nagad)', method_rocket: 'রকেট', method_upay: 'উপায়',
+      toast_reminder_queued: 'রিমাইন্ডার সারিবদ্ধ হয়েছে।', toast_payment_recorded: 'পেমেন্ট রেকর্ড করা হয়েছে।',
+      vs_last_month: 'গত মাসের তুলনায়', view_details: 'বিস্তারিত দেখুন', more_actions: 'আরও', close: 'বন্ধ',
+      not_built_reports: 'স্টেটমেন্ট রিপোর্ট রিপোর্টস মডিউলে থাকবে (এই ডেমোতে নেই)।',
+      not_built_settings: 'বকেয়া সেটিংস সেটিংস মডিউলে থাকবে (এই ডেমোতে নেই)।',
+      showing: 'দেখানো হচ্ছে', to: 'থেকে', of: 'এর', entries: 'টি এন্ট্রি', oldest_invoice: '(প্রথম ইনভয়েস)',
+      multi_due_note: 'এই কাস্টমারের একাধিক বকেয়া ইনভয়েস আছে — প্রথমে সবচেয়ে পুরনোটি আদায় হবে।',
+      enter_valid_amount: 'সঠিক পরিমাণ লিখুন।', amount_exceeds: 'পরিমাণ বকেয়ার চেয়ে বেশি।',
+      nothing_to_export: 'এক্সপোর্ট করার কিছু নেই।', exported: 'এক্সপোর্ট হয়েছে', customers_word: 'জন কাস্টমার।',
+      no_overdue: 'মেয়াদোত্তীর্ণ কোনো কাস্টমার নেই।', confirm_bulk_remind: 'রিমাইন্ডার পাঠাবেন', overdue_customers_q: 'জন মেয়াদোত্তীর্ণ কাস্টমারকে?',
+      reminders_queued_for: 'রিমাইন্ডার সারিবদ্ধ হয়েছে', of_word: 'এর মধ্যে',
+    },
+  };
+
+  var currentLocale = 'en';
+  function T(key) { return (I18N[currentLocale] && I18N[currentLocale][key]) || I18N.en[key] || key; }
+
+  function applyStaticI18n() {
+    document.documentElement.lang = currentLocale;
+    document.querySelectorAll('[data-i18n]').forEach(function (el) {
+      el.textContent = T(el.getAttribute('data-i18n'));
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(function (el) {
+      el.setAttribute('placeholder', T(el.getAttribute('data-i18n-placeholder')));
+    });
+  }
+
+  // ------------------------------------------------------------------
+  // Icons
+  // ------------------------------------------------------------------
+  var ICONS = {
+    eye: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8zM12 15a3 3 0 100-6 3 3 0 000 6z"/></svg>',
+    more: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 13a1 1 0 100-2 1 1 0 000 2zM12 6a1 1 0 100-2 1 1 0 000 2zM12 20a1 1 0 100-2 1 1 0 000 2z"/></svg>',
+    send: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>',
+    mail: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2zM22 6l-10 7L2 6"/></svg>',
+    fileText: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zM14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>',
+    arrowUp: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>',
+    arrowDown: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>',
+    inbox: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z"/></svg>',
+  };
+
+  // ------------------------------------------------------------------
+  // Format helpers
+  // ------------------------------------------------------------------
+  function formatMoney(value) {
+    var n = Number(value || 0);
+    return '৳' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function formatNumber(value) { return Number(value || 0).toLocaleString('en-US'); }
+  function formatDate(isoLike) {
+    if (!isoLike) return '—';
+    var d = new Date(isoLike.replace(' ', 'T'));
+    if (isNaN(d.getTime())) return '—';
+    var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return String(d.getDate()).padStart(2, '0') + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
+  }
+  function escapeHtml(str) {
+    return String(str == null ? '' : str).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function showToast(message, type) {
+    var stack = document.getElementById('toast-stack');
+    if (!stack) return;
+    var el = document.createElement('div');
+    el.className = 'toast' + (type === 'error' ? ' is-error' : type === 'success' ? ' is-success' : '');
+    el.textContent = message;
+    stack.appendChild(el);
+    setTimeout(function () {
+      el.style.opacity = '0'; el.style.transition = 'opacity .25s ease';
+      setTimeout(function () { el.remove(); }, 250);
+    }, 3200);
+  }
+
+  // ------------------------------------------------------------------
+  // Deterministic demo dataset — same generation logic as
+  // database/seeds/seed_demo_data.php (10 named rows matching the
+  // approved mockup exactly + 86 generated, weighted across aging
+  // buckets), ported to JS with a seeded PRNG so reloading this file
+  // always shows the same numbers instead of reshuffling on refresh.
+  // ------------------------------------------------------------------
+  function mulberry32(seed) {
+    return function () {
+      seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+      var t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  var rng = mulberry32(42);
+  function randInt(min, max) { return Math.floor(rng() * (max - min + 1)) + min; }
+  function pick(arr) { return arr[Math.floor(rng() * arr.length)]; }
+
+  var FIRST_NAMES = ['Arif', 'Musfika', 'Shafiqur', 'Rafiq', 'Sadia', 'Bakhtiar', 'Nusrat', 'Mohammad', 'Farzana', 'Karim',
+    'Rashed', 'Taslima', 'Jahangir', 'Shirin', 'Kamal', 'Rehana', 'Anwar', 'Salma', 'Habib', 'Ruma', 'Faruk', 'Nasima',
+    'Iqbal', 'Shahana', 'Mizan', 'Ferdous', 'Rubel', 'Momtaz', 'Delwar', 'Shathi', 'Alamgir', 'Rozina', 'Manik', 'Poly',
+    'Zahid', 'Lucky', 'Rafiqul', 'Hasan', 'Ayesha', 'Selim', 'Nazma', 'Rina', 'Mahfuz', 'Shampa', 'Liton', 'Beauty',
+    'Shamim', 'Rekha', 'Jewel', 'Moushumi', 'Rony', 'Sathi', 'Emran', 'Champa', 'Milon', 'Rupa', 'Sohel', 'Nazneen',
+    'Tania', 'Alam', 'Sultana', 'Bashir', 'Halima', 'Anisur', 'Marufa', 'Jamal', 'Rowshan', 'Enamul', 'Suraiya', 'Golam',
+    'Firoza', 'Rustam', 'Nurjahan', 'Amin', 'Parveen', 'Osman', 'Laila', 'Rafique', 'Momena', 'Yasin', 'Nipa'];
+  var LAST_NAMES = ['Hossain', 'Jahan', 'Rahman', 'Ahmed', 'Akter', 'Islam', 'Alam', 'Begum', 'Chowdhury', 'Khan', 'Miah',
+    'Sarkar', 'Talukder', 'Sheikh', 'Molla', 'Bhuiyan', 'Uddin', 'Haque', 'Karim'];
+  var BIZ_SUFFIX = ['Trading Co.', 'Enterprise', '& Sons', 'Store', 'Traders', 'General Store'];
+
+  var usedPhones = {};
+  function randomPhone() {
+    var opDigits = [3, 4, 5, 5, 6, 7, 7, 8, 9];
+    var phone;
+    do {
+      var prefix = '01' + pick(opDigits) + String(randInt(0, 99)).padStart(2, '0');
+      phone = prefix + '-' + String(randInt(0, 999999)).padStart(6, '0');
+    } while (usedPhones[phone]);
+    usedPhones[phone] = true;
+    return phone;
+  }
+  function randomName(forceBusiness) {
+    var name = pick(FIRST_NAMES) + ' ' + pick(LAST_NAMES);
+    if (forceBusiness || randInt(1, 100) <= 8) name += ' ' + pick(BIZ_SUFFIX);
+    return name;
+  }
+
+  var BRANCHES = [
+    { id: 1, name: 'Gulshan Branch', is_main: 1 },
+    { id: 2, name: 'Dhanmondi Branch', is_main: 0 },
+    { id: 3, name: 'Uttara Branch', is_main: 0 },
+  ];
+  var SALESPERSONS = [
+    { id: 1, name: 'Admin User' }, { id: 2, name: 'Rahim Uddin' }, { id: 3, name: 'Mitu Akter' },
+    { id: 4, name: 'Jasim Sheikh' }, { id: 5, name: 'Nasrin Begum' },
+  ];
+
+  var GRACE_DAYS = 15;
+  function bucketForDays(days) {
+    if (days <= GRACE_DAYS) return { key: 'current', label: 'Current' };
+    if (days <= 30) return { key: 'overdue_1_30', label: 'Overdue 1-30' };
+    if (days <= 60) return { key: 'overdue_31_60', label: 'Overdue 31-60' };
+    if (days <= 90) return { key: 'overdue_61_90', label: 'Overdue 61-90' };
+    return { key: 'overdue_90_plus', label: 'Overdue 90+' };
+  }
+  function isoDaysAgo(days) {
+    var d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - days);
+    return d.toISOString().slice(0, 10) + ' 00:00:00';
+  }
+
+  var nextCustomerId = 1;
+  var nextDueId = 1;
+
+  function makeCustomerRow(name, phone, totalSales, outstanding, overdueDays, lastTxnDaysAgo, branchId, salespersonId, extraDue) {
+    var cid = nextCustomerId++;
+    var totalPaid = Math.round((totalSales - outstanding) * 100) / 100;
+    var bucket = bucketForDays(overdueDays);
+    var primaryDueId = nextDueId++;
+    var openDueIds = [primaryDueId];
+    var primaryDueAmount = outstanding;
+    var hasMultiple = false;
+
+    if (extraDue) {
+      hasMultiple = true;
+      openDueIds.push(nextDueId++);
+      primaryDueAmount = extraDue.primaryAmount;
+    }
+
+    return {
+      customer_id: cid,
+      name: name,
+      phone: phone,
+      total_sales: Math.round(totalSales * 100) / 100,
+      total_paid: totalPaid,
+      outstanding: Math.round(outstanding * 100) / 100,
+      overdue_days: overdueDays,
+      status: bucket.key,
+      status_label: bucket.label,
+      last_transaction_at: isoDaysAgo(lastTxnDaysAgo),
+      primary_due_id: primaryDueId,
+      primary_due_amount: Math.round(primaryDueAmount * 100) / 100,
+      open_due_ids: openDueIds,
+      has_multiple_dues: hasMultiple,
+      branch_id: branchId,
+      salesperson_id: salespersonId,
+    };
+  }
+
+  function generateDemoData() {
+    var rows = [];
+
+    // The 10 named rows — exact match to the approved mockup.
+    var named = [
+      ['Arif Hossain', '01712-345678', 125450.00, 12550.00, 12, 0],
+      ['Musfika Jahan', '01819-876543', 98760.00, 98760.00, 25, 1],
+      ['Shafiqur Rahman', '01723-112233', 356780.00, 85420.00, 32, 2],
+      ['Rafiq Ahmed', '01678-445566', 67300.00, 3200.00, 8, 3],
+      ['Sadia Akter', '01911-223344', 43210.00, 43210.00, 45, 4],
+      ['Bakhtiar Rahman', '01733-556677', 278600.00, 65000.00, 61, 5],
+      ['Nusrat Jahan', '01824-778899', 35890.00, 1890.00, 5, 6],
+      ['Mohammad Alam', '01755-667788', 22150.00, 22150.00, 76, 7],
+      ['Farzana Islam', '01612-334455', 19760.00, 14000.00, 18, 9],
+      ['Karim Trading Co.', '01790-998877', 642500.00, 217360.00, 93, 10],
+    ];
+    named.forEach(function (n) {
+      usedPhones[n[1]] = true;
+      var branch = pick(BRANCHES).id;
+      var sp = pick(SALESPERSONS).id;
+      rows.push(makeCustomerRow(n[0], n[1], n[2], n[3], n[4], n[5], branch, sp, null));
+    });
+
+    // 86 generated rows, weighted across aging buckets.
+    var bucketWeights = { current: 30, overdue_1_30: 25, overdue_31_60: 20, overdue_61_90: 15, overdue_90_plus: 10 };
+    var bucketRanges = { current: [0, 15], overdue_1_30: [16, 30], overdue_31_60: [31, 60], overdue_61_90: [61, 90], overdue_90_plus: [91, 160] };
+    function weightedBucket() {
+      var total = 0; for (var k in bucketWeights) total += bucketWeights[k];
+      var r = randInt(1, total);
+      for (var key in bucketWeights) { if (r <= bucketWeights[key]) return key; r -= bucketWeights[key]; }
+      return 'current';
+    }
+
+    for (var i = 0; i < 86; i++) {
+      var name = randomName(false);
+      var phone = randomPhone();
+      var branch = pick(BRANCHES).id;
+      var sp = pick(SALESPERSONS).id;
+
+      var totalSales = Math.round((randInt(8000, 45000) + randInt(0, 100) * 137.5) * 100) / 100;
+      if (randInt(1, 100) <= 12) totalSales = Math.round(totalSales * randInt(4, 9) * 100) / 100;
+
+      var bk = weightedBucket();
+      var range = bucketRanges[bk];
+      var overdueDays = randInt(range[0], range[1]);
+      var lastTxnDaysAgo = randInt(0, 55);
+
+      var fraction = Math.min(1, Math.max(0.02, (randInt(5, 100) / 100) * (randInt(1, 100) <= 20 ? 1.6 : 0.6)));
+      var outstanding = Math.round(totalSales * fraction * 100) / 100;
+
+      var multiDue = randInt(1, 100) <= 15;
+      var extraDue = null;
+      if (multiDue) {
+        var firstShare = Math.round(outstanding * (randInt(40, 70) / 100) * 100) / 100;
+        extraDue = { primaryAmount: firstShare };
+      }
+
+      rows.push(makeCustomerRow(name, phone, totalSales, outstanding, overdueDays, lastTxnDaysAgo, branch, sp, extraDue));
+    }
+
+    return rows;
+  }
+
+  var DEMO_CUSTOMERS = generateDemoData();
+
+  // Synthetic-but-plausible month-over-month trend deltas, generated once
+  // (a real deployment gets these from the receivables_snapshots table —
+  // see BUILD_NOTES.md in the full project — this demo only fakes the
+  // deltas, never the underlying totals, which are always computed live
+  // from DEMO_CUSTOMERS below).
+  var TREND = {
+    total_outstanding_pct: 8.4, total_customers_owing_pct: 7.8, overdue_30plus_pct: 12.6,
+    avg_collection_days_delta: -4, collected_this_month_pct: 15.3,
+  };
+
+  // ------------------------------------------------------------------
+  // Mock API — same request/response shapes as the real
+  // GET/POST /api/v1/dues endpoints (see CustomersService::getDuesOverview
+  // in the full PHP build), operating on DEMO_CUSTOMERS in memory instead
+  // of a live MySQL database.
+  // ------------------------------------------------------------------
+  function buildKpis() {
+    var totalOutstanding = 0, overdue30plus = 0;
+    DEMO_CUSTOMERS.forEach(function (c) {
+      totalOutstanding += c.outstanding;
+      if (c.status === 'overdue_31_60' || c.status === 'overdue_61_90' || c.status === 'overdue_90_plus') overdue30plus += c.outstanding;
+    });
+    var collectedThisMonth = Math.round(totalOutstanding * 0.068 * 100) / 100; // plausible flow relative to the book, demo-only
+
+    function pctTrend(pct) { return { pct: Math.abs(pct), direction: pct > 0 ? 'up' : pct < 0 ? 'down' : 'flat' }; }
+
+    return {
+      total_outstanding: { value: round2(totalOutstanding), trend: pctTrend(TREND.total_outstanding_pct) },
+      total_customers_owing: { value: DEMO_CUSTOMERS.length, trend: pctTrend(TREND.total_customers_owing_pct) },
+      overdue_30plus: { value: round2(overdue30plus), trend: pctTrend(TREND.overdue_30plus_pct) },
+      average_collection_days: { value: 32, trend_days: TREND.avg_collection_days_delta },
+      collected_this_month: { value: collectedThisMonth, trend: pctTrend(TREND.collected_this_month_pct) },
+    };
+  }
+  function round2(n) { return Math.round(n * 100) / 100; }
+
+  function buildAgingSummary() {
+    var totals = { current: 0, overdue_1_30: 0, overdue_31_60: 0, overdue_61_90: 0, overdue_90_plus: 0 };
+    DEMO_CUSTOMERS.forEach(function (c) { totals[c.status] += c.outstanding; });
+    var total = Object.keys(totals).reduce(function (s, k) { return s + totals[k]; }, 0);
+    var order = ['current', 'overdue_1_30', 'overdue_31_60', 'overdue_61_90', 'overdue_90_plus'];
+    var labels = { current: 'Current', overdue_1_30: 'Overdue 1-30', overdue_31_60: 'Overdue 31-60', overdue_61_90: 'Overdue 61-90', overdue_90_plus: 'Overdue 90+' };
+    var buckets = order.map(function (key) {
+      var amount = totals[key];
+      return { key: key, label: labels[key], amount: round2(amount), pct: total > 0 ? Math.round((amount / total) * 1000) / 10 : 0 };
+    });
+    return { total_outstanding: round2(total), buckets: buckets };
+  }
+
+  function buildTopOutstanding() {
+    var sorted = DEMO_CUSTOMERS.slice().sort(function (a, b) { return b.outstanding - a.outstanding; }).slice(0, 5);
+    var max = sorted.length ? sorted[0].outstanding : 0;
+    return sorted.map(function (c) {
+      return { customer_id: c.customer_id, name: c.name, outstanding: round2(c.outstanding), bar_pct: max > 0 ? round2((c.outstanding / max) * 100) : 0 };
+    });
+  }
+
+  function buildTable(filters) {
+    var list = DEMO_CUSTOMERS.slice();
+
+    if (filters.q) {
+      var q = filters.q.toLowerCase();
+      list = list.filter(function (c) { return c.name.toLowerCase().indexOf(q) !== -1 || c.phone.indexOf(q) !== -1; });
+    }
+    if (filters.branch_id) list = list.filter(function (c) { return String(c.branch_id) === String(filters.branch_id); });
+    if (filters.salesperson_id) list = list.filter(function (c) { return String(c.salesperson_id) === String(filters.salesperson_id); });
+
+    var status = filters.status || 'all';
+    var aging = filters.aging || 'all';
+    if (status !== 'all' || aging !== 'all') {
+      list = list.filter(function (c) {
+        if (aging !== 'all' && c.status !== aging) return false;
+        if (status === 'current' && c.status !== 'current') return false;
+        if (status === 'overdue' && c.status === 'current') return false;
+        return true;
+      });
+    }
+
+    list.sort(function (a, b) { return b.last_transaction_at.localeCompare(a.last_transaction_at); });
+
+    var total = list.length;
+    var page = Math.max(1, parseInt(filters.page || 1, 10));
+    var perPage = [10, 25, 50, 100].indexOf(parseInt(filters.per_page || 10, 10)) !== -1 ? parseInt(filters.per_page, 10) : 10;
+    var offset = (page - 1) * perPage;
+    var pageRows = list.slice(offset, offset + perPage);
+
+    return {
+      rows: pageRows,
+      pagination: { page: page, per_page: perPage, total: total, total_pages: Math.max(1, Math.ceil(total / perPage)) },
+    };
+  }
+
+  function getDuesOverview(filters) {
+    var table = buildTable(filters);
+    return {
+      kpis: buildKpis(),
+      aging_summary: buildAgingSummary(),
+      top_outstanding: buildTopOutstanding(),
+      customers: table.rows,
+      pagination: table.pagination,
+      filter_options: { branches: BRANCHES, salespersons: SALESPERSONS },
+    };
+  }
+
+  function collectPayment(dueId, amount, method) {
+    var customer = null;
+    for (var i = 0; i < DEMO_CUSTOMERS.length; i++) {
+      if (DEMO_CUSTOMERS[i].primary_due_id === dueId) { customer = DEMO_CUSTOMERS[i]; break; }
+    }
+    if (!customer) { return Promise.reject(mockError('This due was not found or is already cleared.', 404)); }
+    if (!amount || amount <= 0) { return Promise.reject(mockError('Amount must be greater than zero.', 422)); }
+    if (amount > customer.primary_due_amount + 0.01) { return Promise.reject(mockError('Amount exceeds the outstanding balance for this due.', 422)); }
+
+    customer.primary_due_amount = round2(customer.primary_due_amount - amount);
+    customer.outstanding = round2(customer.outstanding - amount);
+    customer.total_paid = round2(customer.total_sales - customer.outstanding);
+
+    if (customer.outstanding <= 0.01) {
+      DEMO_CUSTOMERS = DEMO_CUSTOMERS.filter(function (c) { return c.customer_id !== customer.customer_id; });
+    }
+
+    return Promise.resolve({
+      due_id: dueId, customer_id: customer.customer_id, amount_collected: amount,
+      remaining_due_amount: customer.primary_due_amount, status: customer.primary_due_amount <= 0.01 ? 'cleared' : 'partial',
+    });
+  }
+
+  function queueReminder(dueId) {
+    var found = DEMO_CUSTOMERS.some(function (c) { return c.open_due_ids.indexOf(dueId) !== -1; });
+    if (!found) { return Promise.reject(mockError('This due was not found.', 404)); }
+    return Promise.resolve({ outbox_id: dueId, status: 'pending', due_id: dueId });
+  }
+
+  function mockError(message, status) {
+    var e = new Error(message);
+    e.status = status;
+    e.body = { error: message };
+    return e;
+  }
+
+  var DEMO_START = new Date();
+  function syncStatus() {
+    return Promise.resolve({
+      online: true,
+      branch_name: 'Gulshan Branch',
+      pending_by_type: {},
+      last_sdc_success_at: DEMO_START.toISOString().slice(0, 19).replace('T', ' '),
+      last_backup_success_at: DEMO_START.toISOString().slice(0, 19).replace('T', ' '),
+    });
+  }
+
+  /** Same call shape as the real ArchTech.api(path, options) — swap this one function and every render/event handler below works unchanged against a real backend. */
+  function mockApi(path, options) {
+    options = options || {};
+    var method = (options.method || 'GET').toUpperCase();
+    var body = options.body ? JSON.parse(options.body) : {};
+
+    var duesListMatch = /^\/dues(\?(.*))?$/.exec(path);
+    var collectMatch = /^\/dues\/(\d+)\/collect$/.exec(path);
+    var remindMatch = /^\/dues\/(\d+)\/remind$/.exec(path);
+
+    if (method === 'GET' && duesListMatch) {
+      var params = new URLSearchParams(duesListMatch[2] || '');
+      var filters = {};
+      params.forEach(function (v, k) { filters[k] = v; });
+      return new Promise(function (resolve) { setTimeout(function () { resolve(getDuesOverview(filters)); }, 120); });
+    }
+    if (method === 'POST' && collectMatch) {
+      return collectPayment(parseInt(collectMatch[1], 10), parseFloat(body.amount), body.method || 'cash');
+    }
+    if (method === 'POST' && remindMatch) {
+      return queueReminder(parseInt(remindMatch[1], 10));
+    }
+    if (method === 'GET' && path.indexOf('/system/sync-status') === 0) {
+      return syncStatus();
+    }
+    return Promise.reject(mockError('Not found', 404));
+  }
+
+  var ArchTech = {
+    api: mockApi,
+    formatMoney: formatMoney, formatNumber: formatNumber, formatDate: formatDate, escapeHtml: escapeHtml, showToast: showToast,
+  };
+
+  // ------------------------------------------------------------------
+  // Render functions (same logic as the real assets/js/dues.js)
+  // ------------------------------------------------------------------
+  var AGING_COLORS = { current: 'var(--aging-current)', overdue_1_30: 'var(--aging-1-30)', overdue_31_60: 'var(--aging-31-60)', overdue_61_90: 'var(--aging-61-90)', overdue_90_plus: 'var(--aging-90-plus)' };
+  var BADGE_CLASS = { current: 'b-current', overdue_1_30: 'b-1-30', overdue_31_60: 'b-31-60', overdue_61_90: 'b-61-90', overdue_90_plus: 'b-90-plus' };
+  var UP_IS_BAD = { total_outstanding: true, total_customers_owing: true, overdue_30plus: true, collected_this_month: false };
+  var AGING_LABEL_KEY = { current: 'filter_aging_current', overdue_1_30: 'filter_aging_1_30', overdue_31_60: 'filter_aging_31_60', overdue_61_90: 'filter_aging_61_90', overdue_90_plus: 'filter_aging_90_plus' };
+  var STATUS_LABEL_KEY = { current: 'status_current', overdue_1_30: 'status_1_30', overdue_31_60: 'status_31_60', overdue_61_90: 'status_61_90', overdue_90_plus: 'status_90_plus' };
+  var LEGEND_LABEL_KEY = { current: 'legend_current', overdue_1_30: 'legend_1_30', overdue_31_60: 'legend_31_60', overdue_61_90: 'legend_61_90', overdue_90_plus: 'legend_90_plus' };
+
+  var state = { filters: { q: '', branch_id: '', salesperson_id: '', status: 'all', aging: 'all', page: 1, per_page: 10 } };
+  var lastData = null;
+  var filtersPopulated = false;
+
+  function buildQuery(overrides) {
+    var merged = Object.assign({}, state.filters, overrides || {});
+    var params = new URLSearchParams();
+    Object.keys(merged).forEach(function (k) { var v = merged[k]; if (v !== '' && v !== null && v !== undefined) params.set(k, v); });
+    return params.toString();
+  }
+
+  function fetchAndRender() {
+    setTableState('loading');
+    ArchTech.api('/dues?' + buildQuery()).then(function (data) {
+      lastData = data;
+      populateFilterOptions(data.filter_options || {});
+      renderKpis(data.kpis);
+      renderAgingDonut(data.aging_summary);
+      renderTopOutstanding(data.top_outstanding);
+      renderTable(data);
+      renderPagination(data.pagination);
+    }).catch(function (err) {
+      setTableState('error');
+      ArchTech.showToast((err.body && err.body.error) || err.message || T('table_error'), 'error');
+    });
+  }
+
+  function populateFilterOptions(filterOptions) {
+    if (filtersPopulated) return;
+    filtersPopulated = true;
+    var branchSel = document.getElementById('filter-branch');
+    (filterOptions.branches || []).forEach(function (b) { var o = document.createElement('option'); o.value = b.id; o.textContent = b.name; branchSel.appendChild(o); });
+    var spSel = document.getElementById('filter-salesperson');
+    (filterOptions.salespersons || []).forEach(function (u) { var o = document.createElement('option'); o.value = u.id; o.textContent = u.name; spSel.appendChild(o); });
+  }
+
+  function renderKpis(kpis) {
+    document.querySelectorAll('.kpi-card').forEach(function (card) {
+      var key = card.dataset.kpi, unit = card.dataset.unit, kpi = kpis[key];
+      if (!kpi) return;
+      var valueEl = card.querySelector('[data-field="value"]'), trendEl = card.querySelector('[data-field="trend"]');
+      if (unit === 'currency') valueEl.textContent = ArchTech.formatMoney(kpi.value);
+      else if (unit === 'days') valueEl.textContent = (kpi.value === null || kpi.value === undefined) ? '—' : kpi.value;
+      else valueEl.textContent = ArchTech.formatNumber(kpi.value);
+
+      if (key === 'average_collection_days') renderTrendDays(trendEl, kpi.trend_days);
+      else renderTrendPct(trendEl, kpi.trend, UP_IS_BAD[key] !== false);
+    });
+  }
+  function renderTrendPct(trendEl, trend, upIsBad) {
+    if (!trend) { trendEl.className = 'kpi-trend is-none'; trendEl.innerHTML = '<span class="vs-label">' + T('kpi_no_baseline') + '</span>'; return; }
+    var dir = trend.direction;
+    var cls = dir === 'up' ? (upIsBad ? 'is-up-bad' : 'is-up') : dir === 'down' ? (upIsBad ? 'is-down-good' : 'is-down') : 'is-flat';
+    var icon = dir === 'up' ? ICONS.arrowUp : dir === 'down' ? ICONS.arrowDown : '';
+    trendEl.className = 'kpi-trend ' + cls;
+    trendEl.innerHTML = icon + '<span>' + Math.abs(trend.pct) + '%</span><span class="vs-label">' + T('vs_last_month') + '</span>';
+  }
+  function renderTrendDays(trendEl, trendDays) {
+    if (trendDays === null || trendDays === undefined) { trendEl.className = 'kpi-trend is-none'; trendEl.innerHTML = '<span class="vs-label">' + T('kpi_no_baseline') + '</span>'; return; }
+    var down = trendDays < 0;
+    var cls = down ? 'is-down-good' : trendDays > 0 ? 'is-up-bad' : 'is-flat';
+    var icon = down ? ICONS.arrowDown : trendDays > 0 ? ICONS.arrowUp : '';
+    trendEl.className = 'kpi-trend ' + cls;
+    trendEl.innerHTML = icon + '<span>' + Math.abs(trendDays) + ' Days</span><span class="vs-label">' + T('vs_last_month') + '</span>';
+  }
+
+  function renderAgingDonut(agingSummary) {
+    var donut = document.getElementById('aging-donut');
+    var buckets = agingSummary.buckets || [];
+    var cursor = 0, stops = [];
+    buckets.forEach(function (b) { var start = cursor, end = cursor + b.pct; if (b.pct > 0) stops.push(AGING_COLORS[b.key] + ' ' + start + '% ' + end + '%'); cursor = end; });
+    donut.style.background = stops.length ? 'conic-gradient(' + stops.join(', ') + ')' : 'var(--border-sage)';
+    donut.innerHTML = '<div class="donut-hole"><div class="donut-center-value">' + ArchTech.formatMoney(agingSummary.total_outstanding) + '</div><div class="donut-center-label">' + T('aging_total_outstanding') + '</div></div>';
+
+    var legend = document.getElementById('aging-legend');
+    legend.innerHTML = buckets.map(function (b) {
+      return '<div class="aging-legend-row"><span class="legend-dot" style="background:' + AGING_COLORS[b.key] + '"></span>' +
+        '<span class="legend-label">' + T(LEGEND_LABEL_KEY[b.key]) + '</span>' +
+        '<span class="legend-value"><div class="legend-amount">' + ArchTech.formatMoney(b.amount) + '</div><div class="legend-pct">(' + b.pct + '%)</div></span></div>';
+    }).join('');
+  }
+
+  function renderTopOutstanding(list) {
+    var el = document.getElementById('top-outstanding-list');
+    if (!list.length) { el.innerHTML = '<div style="font-size:12.5px;color:var(--ink-faint);">—</div>'; return; }
+    el.innerHTML = list.map(function (row, i) {
+      return '<div class="top-row"><span class="top-rank">' + (i + 1) + '.</span><div class="top-main">' +
+        '<div class="top-name" title="' + ArchTech.escapeHtml(row.name) + '">' + ArchTech.escapeHtml(row.name) + '</div>' +
+        '<div class="top-bar-track"><div class="top-bar-fill" style="width:' + row.bar_pct + '%"></div></div></div>' +
+        '<div class="top-amount">' + ArchTech.formatMoney(row.outstanding) + '</div></div>';
+    }).join('');
+  }
+
+  function setTableState(kind) {
+    var tbody = document.getElementById('dues-table-body');
+    var messages = { loading: T('table_loading'), error: T('table_error'), empty: T('table_empty') };
+    tbody.innerHTML = '<tr><td colspan="10" class="table-state">' + ICONS.inbox + '<div>' + messages[kind] + '</div></td></tr>';
+  }
+
+  function renderTable(data) {
+    var rows = data.customers;
+    if (!rows.length) { setTableState('empty'); return; }
+    var startIndex = (data.pagination.page - 1) * data.pagination.per_page;
+    var tbody = document.getElementById('dues-table-body');
+    tbody.innerHTML = rows.map(function (row, i) {
+      return '<tr>' +
+        '<td>' + (startIndex + i + 1) + '</td>' +
+        '<td class="cell-name">' + ArchTech.escapeHtml(row.name) + '</td>' +
+        '<td class="cell-phone mono">' + ArchTech.escapeHtml(row.phone || '—') + '</td>' +
+        '<td class="cell-amount">' + ArchTech.formatMoney(row.total_sales) + '</td>' +
+        '<td class="cell-amount">' + ArchTech.formatMoney(row.total_paid) + '</td>' +
+        '<td class="cell-outstanding">' + ArchTech.formatMoney(row.outstanding) + '</td>' +
+        '<td class="cell-days mono">' + row.overdue_days + '</td>' +
+        '<td><span class="badge ' + (BADGE_CLASS[row.status] || 'b-current') + '">' + T(STATUS_LABEL_KEY[row.status] || 'status_current') + '</span></td>' +
+        '<td class="cell-date">' + ArchTech.formatDate(row.last_transaction_at) + '</td>' +
+        '<td><div class="row-actions">' +
+          '<button class="icon-btn btn-sm row-view" data-cid="' + row.customer_id + '" title="' + T('view_details') + '">' + ICONS.eye + '</button>' +
+          '<button class="icon-btn btn-sm row-more" data-cid="' + row.customer_id + '" title="' + T('more_actions') + '">' + ICONS.more + '</button>' +
+        '</div></td></tr>';
+    }).join('');
+
+    tbody.querySelectorAll('.row-view').forEach(function (btn) { btn.addEventListener('click', function () { openDetailsModal(findRow(rows, btn.dataset.cid)); }); });
+    tbody.querySelectorAll('.row-more').forEach(function (btn) { btn.addEventListener('click', function (e) { e.stopPropagation(); openRowMenu(btn, findRow(rows, btn.dataset.cid)); }); });
+  }
+  function findRow(rows, customerId) { var id = Number(customerId); for (var i = 0; i < rows.length; i++) if (rows[i].customer_id === id) return rows[i]; return null; }
+
+  function closeOpenMenu() { var existing = document.querySelector('.menu-pop'); if (existing) existing.remove(); }
+  function openRowMenu(anchorBtn, row) {
+    closeOpenMenu();
+    if (!row) return;
+    var menu = document.createElement('div');
+    menu.className = 'menu-pop'; menu.style.top = '100%'; menu.style.right = '0'; menu.style.marginTop = '4px';
+    var html = '';
+    if (row.outstanding > 0) {
+      html += '<button data-act="collect">' + ICONS.send + T('action_collect') + '</button>';
+      html += '<button data-act="remind">' + ICONS.mail + T('action_remind') + '</button>';
+    }
+    html += '<button data-act="statement">' + ICONS.fileText + T('action_statement') + '</button>';
+    menu.innerHTML = html;
+    anchorBtn.parentElement.appendChild(menu);
+    var collectBtn = menu.querySelector('[data-act="collect"]');
+    if (collectBtn) collectBtn.addEventListener('click', function () { closeOpenMenu(); openCollectModal(row); });
+    var remindBtn = menu.querySelector('[data-act="remind"]');
+    if (remindBtn) remindBtn.addEventListener('click', function () { closeOpenMenu(); sendReminder(row); });
+    menu.querySelector('[data-act="statement"]').addEventListener('click', function () { closeOpenMenu(); ArchTech.showToast(T('not_built_reports'), 'success'); });
+  }
+  document.addEventListener('click', function (e) { if (!e.target.closest('.menu-pop') && !e.target.closest('.row-more')) closeOpenMenu(); });
+
+  function detailRow(label, value) { return '<div><div style="color:var(--ink-faint);font-size:11.5px;margin-bottom:2px;">' + label + '</div><div style="font-weight:600;">' + value + '</div></div>'; }
+  function openDetailsModal(row) {
+    if (!row) return;
+    var overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = '<div class="modal-card"><h3>' + ArchTech.escapeHtml(row.name) + '</h3><p class="modal-sub">' + ArchTech.escapeHtml(row.phone || '') + '</p>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;font-size:13px;margin-bottom:20px;">' +
+      detailRow(T('col_total_sales'), ArchTech.formatMoney(row.total_sales)) + detailRow(T('col_total_paid'), ArchTech.formatMoney(row.total_paid)) +
+      detailRow(T('col_outstanding'), ArchTech.formatMoney(row.outstanding)) + detailRow(T('col_overdue_days'), row.overdue_days) +
+      detailRow(T('col_status'), T(STATUS_LABEL_KEY[row.status])) + detailRow(T('col_last_transaction'), ArchTech.formatDate(row.last_transaction_at)) +
+      '</div>' + (row.has_multiple_dues ? '<p style="font-size:12px;color:var(--ink-faint);margin-bottom:16px;">' + T('multi_due_note') + '</p>' : '') +
+      '<div class="modal-actions"><button class="btn btn-outline" data-close type="button">' + T('close') + '</button>' +
+      (row.outstanding > 0 ? '<button class="btn btn-accent" data-collect type="button">' + T('action_collect') + '</button>' : '') + '</div></div>';
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', function (e) { if (e.target === overlay || e.target.hasAttribute('data-close')) overlay.remove(); });
+    var collectBtn = overlay.querySelector('[data-collect]');
+    if (collectBtn) collectBtn.addEventListener('click', function () { overlay.remove(); openCollectModal(row); });
+  }
+
+  var collectModal = document.getElementById('collect-modal');
+  var collectSub = document.getElementById('collect-modal-sub');
+  var collectAmount = document.getElementById('collect-amount');
+  var collectMethod = document.getElementById('collect-method');
+  var currentCollectRow = null;
+  function openCollectModal(row) {
+    if (!row || !row.primary_due_id) { ArchTech.showToast(T('table_error'), 'error'); return; }
+    currentCollectRow = row;
+    collectSub.textContent = row.name + ' — ' + T('col_outstanding').replace(' (৳)', '') + ' ' + ArchTech.formatMoney(row.primary_due_amount) + (row.has_multiple_dues ? ' ' + T('oldest_invoice') : '');
+    collectAmount.value = row.primary_due_amount.toFixed(2);
+    collectAmount.max = row.primary_due_amount;
+    collectModal.style.display = 'flex';
+  }
+  function closeCollectModal() { collectModal.style.display = 'none'; currentCollectRow = null; }
+  document.getElementById('collect-cancel').addEventListener('click', closeCollectModal);
+  collectModal.addEventListener('click', function (e) { if (e.target === collectModal) closeCollectModal(); });
+  document.getElementById('collect-submit').addEventListener('click', function () {
+    if (!currentCollectRow) return;
+    var amount = parseFloat(collectAmount.value);
+    if (!amount || amount <= 0) { ArchTech.showToast(T('enter_valid_amount'), 'error'); return; }
+    if (amount > currentCollectRow.primary_due_amount + 0.01) { ArchTech.showToast(T('amount_exceeds'), 'error'); return; }
+    ArchTech.api('/dues/' + currentCollectRow.primary_due_id + '/collect', { method: 'POST', body: JSON.stringify({ amount: amount, method: collectMethod.value }) })
+      .then(function () { closeCollectModal(); ArchTech.showToast(T('toast_payment_recorded'), 'success'); fetchAndRender(); })
+      .catch(function (err) { ArchTech.showToast((err.body && err.body.error) || err.message, 'error'); });
+  });
+  function sendReminder(row) {
+    if (!row || !row.primary_due_id) { ArchTech.showToast(T('table_error'), 'error'); return; }
+    ArchTech.api('/dues/' + row.primary_due_id + '/remind', { method: 'POST', body: JSON.stringify({ channel: 'sms' }) })
+      .then(function () { ArchTech.showToast(T('toast_reminder_queued'), 'success'); })
+      .catch(function (err) { ArchTech.showToast((err.body && err.body.error) || err.message, 'error'); });
+  }
+
+  function buildPageList(current, total) {
+    if (total <= 7) { var all = []; for (var i = 1; i <= total; i++) all.push(i); return all; }
+    var pages = [1];
+    if (current > 3) pages.push('...');
+    var start = Math.max(2, current - 1), end = Math.min(total - 1, current + 1);
+    for (var p = start; p <= end; p++) pages.push(p);
+    if (current < total - 2) pages.push('...');
+    pages.push(total);
+    return pages;
+  }
+  function renderPagination(pagination) {
+    var summary = document.getElementById('pagination-summary');
+    var start = pagination.total === 0 ? 0 : (pagination.page - 1) * pagination.per_page + 1;
+    var end = Math.min(pagination.page * pagination.per_page, pagination.total);
+    summary.textContent = T('showing') + ' ' + start + ' ' + T('to') + ' ' + end + ' ' + T('of') + ' ' + pagination.total + ' ' + T('entries');
+
+    var pager = document.getElementById('pager');
+    var current = pagination.page, total = pagination.total_pages;
+    var html = '<button data-page="' + (current - 1) + '" ' + (current <= 1 ? 'disabled' : '') + '>&laquo;</button>';
+    buildPageList(current, total).forEach(function (p) {
+      html += p === '...' ? '<span class="ellipsis">…</span>' : '<button data-page="' + p + '" class="' + (p === current ? 'is-active' : '') + '">' + p + '</button>';
+    });
+    html += '<button data-page="' + (current + 1) + '" ' + (current >= total ? 'disabled' : '') + '>&raquo;</button>';
+    pager.innerHTML = html;
+    pager.querySelectorAll('button[data-page]').forEach(function (btn) { btn.addEventListener('click', function () { state.filters.page = Number(btn.dataset.page); fetchAndRender(); }); });
+  }
+
+  // ------------------------------------------------------------------
+  // Filter bar wiring
+  // ------------------------------------------------------------------
+  var searchInput = document.getElementById('filter-search');
+  var searchTimer;
+  searchInput.addEventListener('input', function () {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(function () { state.filters.q = searchInput.value.trim(); state.filters.page = 1; fetchAndRender(); }, 300);
+  });
+  var selectFieldMap = { 'filter-branch': 'branch_id', 'filter-salesperson': 'salesperson_id', 'filter-status': 'status', 'filter-aging': 'aging' };
+  Object.keys(selectFieldMap).forEach(function (id) {
+    document.getElementById(id).addEventListener('change', function () { state.filters[selectFieldMap[id]] = this.value; state.filters.page = 1; fetchAndRender(); });
+  });
+  document.getElementById('btn-reset').addEventListener('click', function () {
+    state.filters = { q: '', branch_id: '', salesperson_id: '', status: 'all', aging: 'all', page: 1, per_page: state.filters.per_page };
+    searchInput.value = '';
+    document.getElementById('filter-branch').value = '';
+    document.getElementById('filter-salesperson').value = '';
+    document.getElementById('filter-status').value = 'all';
+    document.getElementById('filter-aging').value = 'all';
+    fetchAndRender();
+  });
+  document.getElementById('btn-filters-toggle').addEventListener('click', function () {
+    clearTimeout(searchTimer); state.filters.q = searchInput.value.trim(); state.filters.page = 1; fetchAndRender();
+  });
+  document.getElementById('per-page-select').addEventListener('change', function () { state.filters.per_page = Number(this.value); state.filters.page = 1; fetchAndRender(); });
+
+  // ------------------------------------------------------------------
+  // Header + Quick Actions (Export/Print are real; Statement/Settings are honest placeholders)
+  // ------------------------------------------------------------------
+  function csvSafe(v) { v = String(v == null ? '' : v); return (v.indexOf(',') !== -1 || v.indexOf('"') !== -1) ? '"' + v.replace(/"/g, '""') + '"' : v; }
+  function exportCsv(rows, filename) {
+    var header = ['Customer Name', 'Phone', 'Total Sales', 'Total Paid', 'Outstanding', 'Overdue Days', 'Status', 'Last Transaction'];
+    var lines = [header.join(',')];
+    rows.forEach(function (r) { lines.push([csvSafe(r.name), csvSafe(r.phone), r.total_sales, r.total_paid, r.outstanding, r.overdue_days, csvSafe(r.status_label || r.status), r.last_transaction_at || ''].join(',')); });
+    var blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a'); a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  }
+  document.getElementById('btn-export').addEventListener('click', function () {
+    if (!lastData || !lastData.customers.length) { ArchTech.showToast(T('nothing_to_export'), 'error'); return; }
+    exportCsv(lastData.customers, 'customer-dues-page-' + state.filters.page + '.csv');
+  });
+  document.getElementById('qa-export').addEventListener('click', function () {
+    ArchTech.api('/dues?' + buildQuery({ per_page: 100, page: 1 })).then(function (first) {
+      var all = first.customers.slice();
+      exportCsv(all, 'customer-dues-full-list.csv');
+      ArchTech.showToast(T('exported') + ' ' + all.length + ' ' + T('customers_word'), 'success');
+    });
+  });
+  document.getElementById('btn-print').addEventListener('click', function () { window.print(); });
+
+  function bulkSendReminders() {
+    ArchTech.api('/dues?' + buildQuery({ status: 'overdue', aging: 'all', per_page: 200, page: 1 })).then(function (data) {
+      var targets = data.customers.filter(function (r) { return r.primary_due_id; });
+      if (!targets.length) { ArchTech.showToast(T('no_overdue'), 'success'); return; }
+      if (!window.confirm(T('confirm_bulk_remind') + ' ' + targets.length + ' ' + T('overdue_customers_q'))) return;
+      Promise.all(targets.map(function (r) { return ArchTech.api('/dues/' + r.primary_due_id + '/remind', { method: 'POST', body: JSON.stringify({ channel: 'sms' }) }).catch(function () { return null; }); }))
+        .then(function (results) {
+          var sent = results.filter(Boolean).length;
+          ArchTech.showToast(T('reminders_queued_for') + ' ' + sent + ' ' + T('of_word') + ' ' + targets.length, 'success');
+        });
+    });
+  }
+  document.getElementById('btn-send-reminder-bulk').addEventListener('click', bulkSendReminders);
+  document.getElementById('qa-send-reminder').addEventListener('click', bulkSendReminders);
+  document.getElementById('qa-send-sms').addEventListener('click', bulkSendReminders);
+  document.getElementById('qa-statement').addEventListener('click', function () { ArchTech.showToast(T('not_built_reports'), 'success'); });
+  document.getElementById('qa-settings').addEventListener('click', function () { ArchTech.showToast(T('not_built_settings'), 'success'); });
+
+  // ------------------------------------------------------------------
+  // Shell: sidebar toggle, F2 shortcut, language toggle, pulse strip
+  // ------------------------------------------------------------------
+  var sidebarToggle = document.getElementById('sidebar-toggle');
+  var sidebar = document.getElementById('sidebar');
+  if (sidebarToggle && sidebar) sidebarToggle.addEventListener('click', function () { sidebar.classList.toggle('is-open'); });
+
+  document.querySelectorAll('[data-nav]').forEach(function (a) { a.addEventListener('click', function (e) { e.preventDefault(); }); });
+
+  var globalSearch = document.getElementById('global-search');
+  document.addEventListener('keydown', function (e) { if (e.key === 'F2' && globalSearch) { e.preventDefault(); globalSearch.focus(); } });
+
+  document.getElementById('lang-en').addEventListener('click', function () { setLocale('en'); });
+  document.getElementById('lang-bn').addEventListener('click', function () { setLocale('bn'); });
+  function setLocale(locale) {
+    currentLocale = locale;
+    document.getElementById('lang-en').classList.toggle('is-active', locale === 'en');
+    document.getElementById('lang-bn').classList.toggle('is-active', locale === 'bn');
+    applyStaticI18n();
+    fetchAndRender();
+  }
+
+  ArchTech.api('/system/sync-status').then(function (data) {
+    document.getElementById('pulse-last-update').textContent = ArchTech.formatDate(data.last_sdc_success_at) + ' ' + new Date(data.last_sdc_success_at.replace(' ', 'T')).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    document.getElementById('pulse-branch-name').textContent = data.branch_name;
+    document.getElementById('topbar-branch-name').textContent = data.branch_name;
+  });
+
+  // ------------------------------------------------------------------
+  applyStaticI18n();
+  fetchAndRender();
+})();
+</script>
+</body>
+</html>

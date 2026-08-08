@@ -1,0 +1,1800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inventory / Stock Management · ArchTech IMS (Demo)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/*
+  ArchTech IMS — Inventory / Stock Management
+  Standalone demo build: same design tokens, layout, and interaction logic
+  as the real PHP+MySQL app, running here against in-memory demo data
+  instead of a live database. Fonts load from Google Fonts (fine for a
+  browser-side demo; the production app self-hosts them instead, since it
+  has to keep working with no internet on an actual shop floor).
+*/
+
+:root {
+  /* ---------------- Locked brand palette ---------------- */
+  --deep-teal: #0E3B36;
+  --deep-teal-700: #0B2F2B;
+  --deep-teal-600: #123F39;
+  --sidebar-active-bg: #14423C;
+  --marigold: #E8A33D;
+  --marigold-600: #D3922F;
+  --marigold-700: #B87C22;
+  --marigold-tint-12: rgba(232, 163, 61, 0.12);
+  --off-white: #F7F5F0;
+  --charcoal-ink: #1E2422;
+  --alert-red: #C1483B;
+  --alert-red-tint: #FBE7E4;
+  --soft-sage: #B9CDB0;
+  --soft-sage-tint: #EEF3EA;
+
+  /* ---------------- Derived / extended (not in the locked 6, chosen to sit
+     in the same family — see docs/PROPOSED-CHANGES.md) ---------------- */
+  --success-bg: #E1F2D8;
+  --success-text: #236B2A;
+  --success-icon: #2E8B22;
+  --danger-bg: #FCE7E4;
+  --danger-text: #C1483B;
+  --neutral-bg: #E8EAE9;
+  --neutral-text: #4B5563;
+
+  /* ---------------- Surfaces & text ---------------- */
+  --bg-page: var(--off-white);
+  --bg-surface: #FFFFFF;
+  --bg-surface-alt: #F6F4EF;
+  --bg-input: #FFFFFF;
+  --text-primary: var(--charcoal-ink);
+  --text-secondary: #62716A;
+  --text-muted: #8A968F;
+  --text-inverse: #FFFFFF;
+  --text-on-sidebar: #E8EEEC;
+  --text-on-sidebar-muted: #9FB3AE;
+
+  --border-subtle: #E6E2D8;
+  --border-strong: #D8D2C4;
+  --border-sidebar: rgba(255, 255, 255, 0.08);
+  --focus-ring: rgba(232, 163, 61, 0.45);
+
+  /* ---------------- Typography ---------------- */
+  --font-display: 'Sora', 'Noto Sans Bengali', 'Segoe UI', sans-serif;
+  --font-body: 'Inter', 'Noto Sans Bengali', 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', 'Noto Sans Bengali', ui-monospace, monospace;
+
+  --fs-xs: 0.75rem;     /* 12px */
+  --fs-sm: 0.8125rem;   /* 13px */
+  --fs-base: 0.875rem;  /* 14px */
+  --fs-md: 0.9375rem;   /* 15px */
+  --fs-lg: 1.0625rem;   /* 17px */
+  --fs-xl: 1.375rem;    /* 22px */
+  --fs-2xl: 1.75rem;    /* 28px */
+
+  /* ---------------- Spacing (4px grid) ---------------- */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --sp-10: 40px;
+
+  /* ---------------- Radii ---------------- */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 999px;
+
+  /* ---------------- Shadows ---------------- */
+  --shadow-sm: 0 1px 2px rgba(30, 36, 34, 0.06);
+  --shadow-md: 0 4px 16px rgba(14, 59, 54, 0.08);
+  --shadow-lg: 0 12px 32px rgba(14, 59, 54, 0.14);
+
+  /* ---------------- Layout ---------------- */
+  --sidebar-width: 240px;
+  --sidebar-width-collapsed: 76px;
+  --pulse-height: 38px;
+  --topbar-height: 76px;
+
+  /* ---------------- Motion ---------------- */
+  --ease-standard: cubic-bezier(0.2, 0.6, 0.2, 1);
+  --dur-fast: 120ms;
+  --dur-base: 180ms;
+}
+
+[dir='rtl'] { unicode-bidi: isolate; }
+
+html[lang='bn'] body {
+  font-family: 'Noto Sans Bengali', var(--font-body);
+}
+
+
+/*
+  app.css — shared app shell.
+  Layout anchor common to every screen: pulse strip, sidebar, topbar,
+  plus the base component library (buttons, inputs, badges) screens
+  compose from. Screen-specific layout lives in each screen's own CSS
+  file (see assets/css/inventory.css).
+*/
+
+/* ---------------- Reset ---------------- */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg-page);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: var(--fs-base);
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3, h4, p { margin: 0; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+a { color: inherit; text-decoration: none; }
+ul { margin: 0; padding: 0; list-style: none; }
+svg { display: block; flex-shrink: 0; }
+::selection { background: var(--marigold-tint-12); }
+
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
+
+/* ---------------- App shell ---------------- */
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------------- Pulse strip ---------------- */
+.pulse-strip {
+  height: var(--pulse-height);
+  background: var(--deep-teal-700);
+  color: var(--text-on-sidebar);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: 0 var(--sp-6);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow-x: auto;
+  flex-shrink: 0;
+}
+.pulse-strip::-webkit-scrollbar { display: none; }
+.pulse-item { display: inline-flex; align-items: center; gap: var(--sp-2); }
+.pulse-sep { color: rgba(255,255,255,0.32); }
+.pulse-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--success-icon);
+  box-shadow: 0 0 0 3px rgba(46, 139, 34, 0.22);
+  flex-shrink: 0;
+}
+.pulse-dot[data-state='syncing'] { background: var(--marigold); box-shadow: 0 0 0 3px rgba(232,163,61,0.22); animation: pulse-blink 1.4s ease-in-out infinite; }
+.pulse-dot[data-state='offline'] { background: #9AA6A2; box-shadow: 0 0 0 3px rgba(154,166,162,0.22); animation: none; }
+@keyframes pulse-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+.pulse-strip .icon-sm { width: 14px; height: 14px; color: var(--success-icon); }
+.pulse-active-branch { color: var(--marigold); font-weight: 600; }
+.pulse-strip strong { font-weight: 600; }
+
+/* ---------------- Shell body: sidebar + main ---------------- */
+.shell-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+/* ---------------- Sidebar ---------------- */
+.sidebar {
+  width: var(--sidebar-width);
+  flex-shrink: 0;
+  background: var(--deep-teal);
+  display: flex;
+  flex-direction: column;
+  padding: var(--sp-6) 0 var(--sp-5);
+  transition: width var(--dur-base) var(--ease-standard);
+}
+.sidebar-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: 0 var(--sp-5) var(--sp-6);
+  text-align: center;
+}
+.sidebar-brand-icon { width: 56px; height: 56px; color: var(--marigold); }
+.sidebar-brand-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--fs-xl);
+  color: #FFFFFF;
+  letter-spacing: -0.01em;
+}
+.sidebar-brand-tagline {
+  font-size: var(--fs-xs);
+  color: var(--text-on-sidebar-muted);
+}
+
+.sidebar-nav { flex: 1; padding: 0 var(--sp-3); display: flex; flex-direction: column; gap: 2px; }
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: 11px var(--sp-4) 11px 17px;
+  border-left: 3px solid transparent;
+  border-radius: var(--radius-md);
+  color: var(--text-on-sidebar);
+  font-size: var(--fs-md);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: background var(--dur-fast) var(--ease-standard), color var(--dur-fast) var(--ease-standard);
+}
+.nav-item .icon { width: 19px; height: 19px; opacity: 0.92; flex-shrink: 0; }
+.nav-item:hover { background: rgba(255,255,255,0.06); color: #FFFFFF; }
+.nav-item.is-active {
+  background: var(--sidebar-active-bg);
+  border-left-color: var(--marigold);
+  color: var(--marigold);
+  font-weight: 600;
+}
+.nav-item.is-active .icon { opacity: 1; }
+.nav-label { overflow: hidden; text-overflow: ellipsis; }
+
+.sidebar-footer {
+  margin-top: var(--sp-5);
+  padding: var(--sp-4) var(--sp-5) 0;
+  border-top: 1px solid var(--border-sidebar);
+  font-size: var(--fs-xs);
+  line-height: 1.6;
+  color: var(--text-on-sidebar-muted);
+}
+
+/* ---------------- Main column ---------------- */
+.main-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-page);
+}
+
+/* ---------------- Topbar ---------------- */
+.topbar {
+  height: var(--topbar-height);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-5);
+  padding: 0 var(--sp-6);
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.sidebar-toggle {
+  background: none; border: none; padding: var(--sp-2);
+  border-radius: var(--radius-md); color: var(--text-primary);
+  display: flex; align-items: center; justify-content: center;
+}
+.sidebar-toggle:hover { background: var(--bg-surface-alt); }
+.sidebar-toggle .icon { width: 22px; height: 22px; }
+
+.topbar-search {
+  flex: 1;
+  max-width: 620px;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.topbar-search .icon-search {
+  position: absolute; left: var(--sp-4); width: 17px; height: 17px; color: var(--text-muted);
+}
+.topbar-search input {
+  width: 100%;
+  height: 44px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  padding: 0 52px 0 44px;
+  font-size: var(--fs-base);
+  color: var(--text-primary);
+  transition: border-color var(--dur-fast), box-shadow var(--dur-fast);
+}
+.topbar-search input::placeholder { color: var(--text-muted); }
+.topbar-search input:focus {
+  outline: none; border-color: var(--marigold);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+.kbd-hint {
+  position: absolute; right: var(--sp-3);
+  font-size: 11px; font-weight: 600; color: var(--text-muted);
+  border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);
+  padding: 2px 7px; background: var(--bg-surface-alt);
+  pointer-events: none;
+}
+
+.topbar-spacer { flex: 1; }
+
+.branch-select {
+  display: flex; align-items: center; gap: var(--sp-2);
+  height: 44px; padding: 0 var(--sp-4);
+  border: 1px solid var(--border-subtle); border-radius: var(--radius-md);
+  background: var(--bg-surface); font-size: var(--fs-base); font-weight: 500;
+  white-space: nowrap;
+}
+.branch-select .chev { color: var(--text-muted); }
+
+.lang-toggle {
+  display: flex; align-items: center; gap: 2px;
+  padding: 3px; border-radius: var(--radius-full);
+  border: 1px solid var(--border-subtle); background: var(--bg-surface);
+}
+.lang-toggle button {
+  border: none; background: none; padding: 7px 13px;
+  border-radius: var(--radius-full); font-size: var(--fs-sm); font-weight: 600;
+  color: var(--text-secondary);
+}
+.lang-toggle button.is-active { background: var(--deep-teal); color: #FFFFFF; }
+
+.notif-btn {
+  position: relative; width: 44px; height: 44px;
+  border: 1px solid var(--border-subtle); border-radius: var(--radius-md);
+  background: var(--bg-surface); display: flex; align-items: center; justify-content: center;
+}
+.notif-btn .icon { width: 19px; height: 19px; color: var(--text-primary); }
+.notif-badge {
+  position: absolute; top: -6px; right: -6px;
+  min-width: 19px; height: 19px; padding: 0 4px;
+  border-radius: var(--radius-full); background: var(--marigold);
+  color: #FFFFFF; font-size: 10.5px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  border: 2px solid var(--bg-surface);
+}
+
+.profile-menu { display: flex; align-items: center; gap: var(--sp-2); padding: var(--sp-1); border-radius: var(--radius-md); }
+.profile-avatar {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--deep-teal); color: #FFFFFF;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.profile-avatar .icon { width: 20px; height: 20px; }
+.profile-text { display: flex; flex-direction: column; line-height: 1.25; text-align: left; }
+.profile-name { font-size: var(--fs-sm); font-weight: 600; }
+.profile-role { font-size: 11px; color: var(--text-muted); }
+.chev { width: 15px; height: 15px; color: var(--text-muted); flex-shrink: 0; }
+.profile-menu .chev { margin-left: 2px; }
+
+/* ---------------- Page content wrapper ---------------- */
+.page-content {
+  flex: 1;
+  padding: var(--sp-6);
+  min-width: 0;
+}
+
+/* ---------------- Buttons ---------------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--sp-2);
+  height: 42px; padding: 0 var(--sp-4);
+  border-radius: var(--radius-md);
+  font-size: var(--fs-base); font-weight: 600;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  transition: background var(--dur-fast) var(--ease-standard), border-color var(--dur-fast), box-shadow var(--dur-fast), transform var(--dur-fast);
+}
+.btn .icon { width: 16px; height: 16px; }
+.btn:active { transform: translateY(1px); }
+.btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--focus-ring); }
+.btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+
+.btn-outline {
+  background: var(--bg-surface); border-color: var(--border-subtle); color: var(--text-primary);
+}
+.btn-outline:hover:not(:disabled) { border-color: var(--border-strong); background: var(--bg-surface-alt); }
+
+.btn-primary {
+  background: var(--marigold); color: #FFFFFF;
+  box-shadow: var(--shadow-sm);
+}
+.btn-primary:hover:not(:disabled) { background: var(--marigold-600); }
+
+.btn-dark {
+  background: var(--deep-teal); color: #FFFFFF;
+}
+.btn-dark:hover:not(:disabled) { background: var(--deep-teal-600); }
+
+.btn-ghost {
+  background: transparent; border-color: transparent; color: var(--text-primary);
+}
+.btn-ghost:hover:not(:disabled) { background: var(--bg-surface-alt); }
+
+.btn-sm { height: 34px; padding: 0 var(--sp-3); font-size: var(--fs-sm); }
+.btn-icon { width: 42px; padding: 0; }
+.btn-block { width: 100%; }
+
+.icon-btn {
+  width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center;
+  border-radius: var(--radius-sm); border: 1px solid transparent; background: transparent; color: var(--text-primary);
+}
+.icon-btn.bordered { border-color: var(--border-subtle); background: var(--bg-surface); }
+.icon-btn:hover { background: var(--bg-surface-alt); }
+.icon-btn .icon { width: 16px; height: 16px; }
+
+/* ---------------- Form controls ---------------- */
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.field-label { font-size: var(--fs-xs); font-weight: 600; color: var(--text-secondary); }
+.field-hint { font-size: 11px; color: var(--text-muted); }
+.field-error { font-size: 11px; color: var(--alert-red); font-weight: 500; }
+
+.control {
+  height: 42px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-input);
+  padding: 0 var(--sp-3);
+  font-size: var(--fs-base);
+  color: var(--text-primary);
+  width: 100%;
+}
+.control:focus { outline: none; border-color: var(--marigold); box-shadow: 0 0 0 3px var(--focus-ring); }
+.control.has-error { border-color: var(--alert-red); }
+textarea.control { height: auto; padding: var(--sp-3); resize: vertical; min-height: 76px; }
+
+.select-wrap { position: relative; }
+.select-wrap select.control { appearance: none; padding-right: 34px; cursor: pointer; }
+.select-wrap .chev {
+  position: absolute; right: 13px; top: 50%; transform: translateY(-50%);
+  width: 15px; height: 15px; color: var(--text-muted); pointer-events: none;
+}
+
+.input-icon-wrap { position: relative; display: flex; align-items: center; }
+.input-icon-wrap .icon-leading { position: absolute; left: 13px; width: 16px; height: 16px; color: var(--text-muted); }
+.input-icon-wrap .icon-trailing { position: absolute; right: 13px; width: 16px; height: 16px; color: var(--text-muted); }
+.input-icon-wrap input.control { padding-left: 38px; }
+.input-icon-wrap input.control.has-trailing { padding-right: 38px; }
+
+.checkbox {
+  width: 17px; height: 17px; border-radius: 5px; border: 1.5px solid var(--border-strong);
+  accent-color: var(--marigold); cursor: pointer;
+}
+
+/* ---------------- Badges ---------------- */
+.badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 26px; padding: 0 12px;
+  border-radius: var(--radius-full);
+  font-size: 12.5px; font-weight: 700;
+  white-space: nowrap;
+}
+.badge-success { background: var(--success-bg); color: var(--success-text); }
+.badge-danger { background: var(--danger-bg); color: var(--danger-text); }
+.badge-neutral { background: var(--neutral-bg); color: var(--neutral-text); }
+
+/* ---------------- Dropdown menu (generic) ---------------- */
+.dropdown { position: relative; display: inline-flex; }
+.dropdown-panel {
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 40;
+  min-width: 190px; background: var(--bg-surface); border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md); box-shadow: var(--shadow-lg); padding: 6px;
+  opacity: 0; visibility: hidden; transform: translateY(-4px);
+  transition: opacity var(--dur-fast), transform var(--dur-fast), visibility var(--dur-fast);
+}
+.dropdown-panel.is-open { opacity: 1; visibility: visible; transform: translateY(0); }
+.dropdown-panel button {
+  display: flex; align-items: center; gap: var(--sp-2); width: 100%;
+  padding: 9px 10px; border-radius: var(--radius-sm); background: none; border: none;
+  font-size: var(--fs-sm); font-weight: 500; color: var(--text-primary); text-align: left;
+}
+.dropdown-panel button:hover { background: var(--bg-surface-alt); }
+.dropdown-panel .icon { width: 15px; height: 15px; color: var(--text-muted); }
+
+/* ---------------- Toast ---------------- */
+.toast-stack {
+  position: fixed; bottom: var(--sp-6); right: var(--sp-6); z-index: 200;
+  display: flex; flex-direction: column; gap: var(--sp-2); align-items: flex-end;
+}
+.toast {
+  display: flex; align-items: center; gap: var(--sp-2);
+  background: var(--charcoal-ink); color: #FFFFFF;
+  padding: 12px 16px; border-radius: var(--radius-md); box-shadow: var(--shadow-lg);
+  font-size: var(--fs-sm); font-weight: 500; max-width: 360px;
+  animation: toast-in var(--dur-base) var(--ease-standard);
+}
+.toast.is-success { background: var(--deep-teal); }
+.toast.is-error { background: var(--alert-red); }
+.toast .icon { width: 16px; height: 16px; flex-shrink: 0; }
+@keyframes toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ---------------- Modal ---------------- */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(14, 20, 18, 0.48);
+  display: flex; align-items: center; justify-content: center; padding: var(--sp-6);
+  z-index: 100; opacity: 0; visibility: hidden; transition: opacity var(--dur-base), visibility var(--dur-base);
+}
+.modal-overlay.is-open { opacity: 1; visibility: visible; }
+.modal {
+  width: 100%; max-width: 560px; max-height: calc(100vh - 64px);
+  background: var(--bg-surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg);
+  display: flex; flex-direction: column; overflow: hidden;
+  transform: translateY(12px) scale(0.98); transition: transform var(--dur-base) var(--ease-standard);
+}
+.modal-overlay.is-open .modal { transform: translateY(0) scale(1); }
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--sp-5) var(--sp-6); border-bottom: 1px solid var(--border-subtle); flex-shrink: 0;
+}
+.modal-title { font-family: var(--font-display); font-size: var(--fs-lg); font-weight: 700; }
+.modal-body { padding: var(--sp-6); overflow-y: auto; display: flex; flex-direction: column; gap: var(--sp-4); }
+.modal-footer {
+  display: flex; align-items: center; justify-content: flex-end; gap: var(--sp-3);
+  padding: var(--sp-5) var(--sp-6); border-top: 1px solid var(--border-subtle); flex-shrink: 0;
+}
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-4); }
+.form-grid .span-2 { grid-column: 1 / -1; }
+
+/* ---------------- Scrollbar polish (desktop, webkit) ---------------- */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: var(--radius-full); }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+
+/*
+  inventory.css — Inventory / Stock Management screen.
+  Shell/component styles (buttons, inputs, badges, modal) live in app.css;
+  this file is layout specific to this one screen.
+*/
+
+/* ---------------- Page header ---------------- */
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--sp-5);
+}
+.page-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--fs-2xl);
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+.page-subtitle {
+  margin-top: 4px;
+  font-size: var(--fs-base);
+  color: var(--text-secondary);
+}
+.page-actions { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; }
+
+/* ---------------- Filter bar ---------------- */
+.filter-bar {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--sp-4) var(--sp-5);
+  margin-bottom: var(--sp-5);
+}
+.filter-fields { display: flex; align-items: flex-end; gap: var(--sp-3); flex-wrap: wrap; flex: 1; }
+.filter-field { width: 168px; flex-shrink: 0; }
+.filter-scan { width: 232px; flex-shrink: 0; }
+.filter-actions { display: flex; align-items: center; gap: var(--sp-2); flex-shrink: 0; }
+
+/* ---------------- KPI cards ---------------- */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-5);
+}
+.kpi-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--sp-4) var(--sp-4) var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  min-width: 0;
+}
+.kpi-card-head { display: flex; align-items: center; gap: 10px; }
+.kpi-icon { width: 30px; height: 30px; flex-shrink: 0; }
+.kpi-icon.tone-green { color: var(--success-icon); }
+.kpi-icon.tone-marigold { color: var(--marigold); }
+.kpi-icon.tone-red { color: var(--alert-red); }
+.kpi-icon.tone-neutral { color: var(--text-muted); }
+.kpi-icon-badge {
+  width: 40px; height: 40px; border-radius: var(--radius-md);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.kpi-icon-badge.tone-green { background: var(--success-bg); }
+.kpi-icon-badge.tone-marigold { background: var(--marigold-tint-12); }
+.kpi-icon-badge.tone-red { background: var(--danger-bg); }
+.kpi-icon-badge.tone-neutral { background: var(--neutral-bg); }
+.kpi-icon-badge .kpi-icon { width: 20px; height: 20px; }
+.kpi-label { font-size: var(--fs-sm); font-weight: 600; color: var(--text-secondary); }
+.kpi-value {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.7rem;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.kpi-value.tone-red { color: var(--alert-red); }
+.kpi-value.tone-green { color: var(--success-text); }
+.kpi-sub { font-size: var(--fs-xs); color: var(--text-muted); }
+.kpi-card.is-loading .kpi-value { color: transparent; background: var(--bg-surface-alt); border-radius: 4px; }
+
+/* ---------------- Table card ---------------- */
+.table-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.table-scroll { overflow-x: auto; }
+
+.data-table {
+  width: 100%;
+  min-width: 1240px;
+  border-collapse: collapse;
+  font-size: var(--fs-base);
+  table-layout: auto;
+}
+.data-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--bg-surface-alt);
+  text-align: left;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--text-primary);
+  padding: 13px 12px;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.data-table th.col-checkbox, .data-table td.col-checkbox { width: 38px; padding-right: 0; padding-left: 16px; }
+.data-table th.col-qty, .data-table td.col-qty-cell { width: 64px; }
+.data-table th.col-unit, .data-table td.col-unit-cell { width: 60px; }
+.th-sort {
+  display: inline-flex; align-items: center; gap: 6px; background: none; border: none;
+  font: inherit; font-weight: 700; color: var(--text-primary); padding: 0; cursor: pointer;
+}
+.th-sort .icon { width: 13px; height: 13px; color: var(--text-muted); transition: color var(--dur-fast); }
+.th-sort:hover .icon, .th-sort.is-active .icon { color: var(--marigold); }
+.th-sort.is-active { color: var(--text-primary); }
+
+.data-table tbody td {
+  padding: 12px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  vertical-align: middle;
+}
+.data-table tbody tr:last-child td { border-bottom: none; }
+.data-table tbody tr:hover td { background: var(--bg-surface-alt); }
+.data-table tbody tr.is-selected td { background: var(--marigold-tint-12); }
+
+.cell-sku { font-family: var(--font-mono); font-weight: 500; letter-spacing: -0.01em; white-space: nowrap; }
+.cell-name { font-weight: 500; white-space: nowrap; max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
+.cell-muted { color: var(--text-secondary); white-space: nowrap; }
+.cell-num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.cell-qty { font-family: var(--font-mono); font-weight: 700; font-variant-numeric: tabular-nums; }
+.cell-qty.tone-green { color: var(--success-text); }
+.cell-qty.tone-red { color: var(--alert-red); }
+.cell-updated { display: flex; flex-direction: column; gap: 1px; font-size: var(--fs-sm); color: var(--text-secondary); white-space: nowrap; }
+.cell-updated .date { color: var(--text-primary); font-weight: 500; }
+.cell-actions { display: flex; align-items: center; gap: 6px; }
+
+.table-empty, .table-loading, .table-error {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: var(--sp-3); padding: 64px var(--sp-6); color: var(--text-muted); text-align: center;
+}
+.table-empty .icon, .table-error .icon { width: 34px; height: 34px; opacity: 0.6; }
+.table-error { color: var(--alert-red); }
+.table-loading .spin { width: 26px; height: 26px; color: var(--marigold); animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.skeleton-row td { padding: 13px var(--sp-4); border-bottom: 1px solid var(--border-subtle); }
+.skeleton-bar { height: 14px; border-radius: 4px; background: linear-gradient(90deg, var(--bg-surface-alt) 25%, #EDEBE3 37%, var(--bg-surface-alt) 63%); background-size: 400% 100%; animation: shimmer 1.4s ease infinite; }
+@keyframes shimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+
+/* ---------------- Pagination ---------------- */
+.table-pagination {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--sp-4);
+  padding: var(--sp-4) var(--sp-5); flex-wrap: wrap;
+  border-top: 1px solid var(--border-subtle);
+}
+.pagination-summary { font-size: var(--fs-sm); color: var(--text-secondary); }
+.pagination-summary strong { color: var(--text-primary); font-weight: 600; }
+.per-page-select { width: 132px; flex-shrink: 0; }
+.pagination-controls { display: flex; align-items: center; gap: var(--sp-4); flex-wrap: wrap; }
+.pager { display: flex; align-items: center; gap: 4px; }
+.pager button {
+  min-width: 34px; height: 34px; padding: 0 8px;
+  border-radius: var(--radius-sm); border: 1px solid transparent; background: none;
+  font-size: var(--fs-sm); font-weight: 600; color: var(--text-primary);
+}
+.pager button:hover:not(:disabled) { background: var(--bg-surface-alt); }
+.pager button:disabled { color: var(--text-muted); cursor: not-allowed; }
+.pager button.is-active { background: var(--deep-teal); color: #FFFFFF; }
+.pager .ellipsis { padding: 0 4px; color: var(--text-muted); }
+
+/* ---------------- Export dropdown, per-row "more" menu ---------------- */
+.export-dropdown .dropdown-panel { min-width: 200px; }
+.row-menu-panel { min-width: 168px; }
+.row-menu-panel button.is-danger { color: var(--alert-red); }
+.row-menu-panel button.is-danger .icon { color: var(--alert-red); }
+
+/* ---------------- Responsive ---------------- */
+@media (max-width: 1180px) {
+  .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 1024px) {
+  .sidebar {
+    position: fixed;
+    top: var(--pulse-height);
+    bottom: 0;
+    left: 0;
+    z-index: 60;
+    box-shadow: var(--shadow-lg);
+    transform: translateX(-100%);
+  }
+  .app-shell.sidebar-open .sidebar { transform: translateX(0); }
+  .sidebar-backdrop {
+    display: none;
+    position: fixed; inset: var(--pulse-height) 0 0 0; background: rgba(14,20,18,0.4); z-index: 50;
+  }
+  .app-shell.sidebar-open .sidebar-backdrop { display: block; }
+  .topbar-search { max-width: 340px; }
+  .branch-select { flex-shrink: 0; }
+}
+
+@media (max-width: 860px) {
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .page-content { padding: var(--sp-4); }
+  .topbar { padding: 0 var(--sp-4); gap: var(--sp-3); }
+  .profile-text { display: none; }
+  .lang-toggle { display: none; }
+  .filter-bar { flex-direction: column; align-items: stretch; }
+  .filter-field, .filter-scan { width: 100%; }
+  .filter-fields { flex-direction: column; align-items: stretch; }
+  .filter-actions { justify-content: flex-end; }
+}
+
+@media (max-width: 640px) {
+  .kpi-grid { grid-template-columns: 1fr 1fr; }
+  .page-actions { width: 100%; }
+  .page-actions .btn { flex: 1; }
+  .form-grid { grid-template-columns: 1fr; }
+  .table-pagination { flex-direction: column; align-items: stretch; }
+  .pagination-controls { justify-content: space-between; }
+}
+
+</style>
+</head>
+<body>
+<div class="app-shell" id="appShell">
+
+  <div class="pulse-strip" id="pulseStrip" aria-live="polite">
+    <span class="pulse-item">
+      <span class="pulse-dot" id="pulseDot" data-state="synced"></span>
+      <span id="pulseSyncLabel">Synced</span>
+    </span>
+    <span class="pulse-sep">|</span>
+    <span class="pulse-item" id="pulseSdcWrap">
+      <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="m9 12 2 2 4-4" /></svg>
+      <span id="pulseSdcLabel">SDC Authorized</span>
+    </span>
+    <span class="pulse-sep">|</span>
+    <span class="pulse-item">Last Update: <strong id="pulseLastUpdate">—</strong></span>
+    <span class="pulse-sep">|</span>
+    <span class="pulse-item">Active Branch: <strong class="pulse-active-branch" id="pulseActiveBranch">Gulshan Branch</strong></span>
+  </div>
+
+  <div class="shell-body">
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <svg class="sidebar-brand-icon" viewBox="0 0 64 44" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <g transform="translate(2,7) scale(1.02)">
+            <path d="M10 12h4" /><path d="M10 8h4" /><path d="M14 21v-3a2 2 0 0 0-4 0v3" /><path d="M6 10H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2" /><path d="M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16" />
+          </g>
+          <g transform="translate(27,13) scale(1.2)">
+            <path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z" /><path d="M12 22V12" /><polyline points="3.29 7 12 12 20.71 7" /><path d="m7.5 4.27 9 5.15" />
+          </g>
+        </svg>
+        <span class="sidebar-brand-name">ArchTech IMS</span>
+        <span class="sidebar-brand-tagline">Inventory Management System</span>
+      </div>
+
+      <nav class="sidebar-nav" id="sidebarNav"></nav>
+
+      <div class="sidebar-footer">
+        <div>&copy; 2026 ArchTech IMS</div>
+        <div>All rights reserved</div>
+      </div>
+    </aside>
+
+    <div class="main-col">
+      <header class="topbar">
+        <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle menu" type="button">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+        </button>
+
+        <div class="topbar-search">
+          <svg class="icon-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="search" id="globalSearch" placeholder="Search by SKU, Product Name, Barcode..." autocomplete="off">
+          <span class="kbd-hint">F2</span>
+        </div>
+
+        <div class="topbar-spacer"></div>
+
+        <div class="dropdown" id="branchDropdown">
+          <button class="branch-select" type="button" id="branchSelectBtn">
+            <span class="label-text" id="activeBranchLabel">Gulshan Branch</span>
+            <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="dropdown-panel" id="branchDropdownPanel"></div>
+        </div>
+
+        <div class="lang-toggle" role="group" aria-label="Language">
+          <button type="button" data-lang="bn">বাংলা</button>
+          <button type="button" data-lang="en" class="is-active">EN</button>
+        </div>
+
+        <button class="notif-btn" type="button" aria-label="Notifications" data-toast="Demo only — notifications aren't wired up here.">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></svg>
+          <span class="notif-badge">8</span>
+        </button>
+
+        <div class="dropdown" id="profileDropdown">
+          <button class="profile-menu" type="button" id="profileMenuBtn">
+            <span class="profile-avatar"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+            <span class="profile-text">
+              <span class="profile-name">Admin User</span>
+              <span class="profile-role">Administrator</span>
+            </span>
+            <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="dropdown-panel" id="profileDropdownPanel">
+            <button type="button" data-toast="Demo only — this menu isn't wired up here.">Profile</button>
+            <button type="button" data-toast="Demo only — this menu isn't wired up here.">Settings</button>
+          </div>
+        </div>
+      </header>
+
+      <main class="page-content">
+        <div id="pageBody"></div>
+      </main>
+    </div>
+  </div>
+</div>
+
+<div class="toast-stack" id="toastStack"></div>
+
+<!-- ==================== Add Product modal ==================== -->
+<div class="modal-overlay" id="addProductModal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="addProductTitle">
+    <div class="modal-header">
+      <h2 class="modal-title" id="addProductTitle">Add Product</h2>
+      <button class="icon-btn" type="button" data-close-modal aria-label="Close">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+      </button>
+    </div>
+    <form id="addProductForm">
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="field">
+            <label class="field-label" for="apSku">SKU *</label>
+            <input class="control" id="apSku" name="sku" required>
+            <span class="field-error" data-error-for="sku"></span>
+          </div>
+          <div class="field">
+            <label class="field-label" for="apBarcode">Barcode</label>
+            <input class="control" id="apBarcode" name="barcode">
+          </div>
+          <div class="field span-2">
+            <label class="field-label" for="apName">Product Name *</label>
+            <input class="control" id="apName" name="name" required>
+            <span class="field-error" data-error-for="name"></span>
+          </div>
+          <div class="field">
+            <label class="field-label" for="apCategory">Category</label>
+            <div class="select-wrap">
+              <select class="control" id="apCategory" name="category_id">
+                <option value="">Select...</option>
+                <option value="8">Baby Care</option>
+                <option value="7">Bakery</option>
+                <option value="3">Beverages</option>
+                <option value="5">Dairy</option>
+                <option value="6">Grocery & Staples</option>
+                <option value="4">Household</option>
+                <option value="1">Personal Care</option>
+                <option value="2">Snacks</option>
+              </select>
+              <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="apSupplier">Default Supplier</label>
+            <div class="select-wrap">
+              <select class="control" id="apSupplier" name="default_supplier_id">
+                <option value="">Select...</option>
+                <option value="2">ACI Consumer Brands</option>
+                <option value="5">Akij Food & Beverage</option>
+                <option value="6">City Group Distribution</option>
+                <option value="4">PRAN-RFL Distribution</option>
+                <option value="1">Square Distribution Ltd.</option>
+                <option value="3">Unilever Bangladesh Distribution</option>
+              </select>
+              <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="apBranch">Branch *</label>
+            <div class="select-wrap">
+              <select class="control" id="apBranch" name="branch_id" required>
+                <option value="1" selected>Gulshan Branch</option>
+                <option value="2">Dhanmondi Branch</option>
+                <option value="3">Uttara Branch</option>
+              </select>
+              <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="apUnit">Unit *</label>
+            <input class="control" id="apUnit" name="unit" value="Pcs" required>
+          </div>
+          <div class="field">
+            <label class="field-label" for="apReorderLevel">Reorder Level</label>
+            <input class="control" id="apReorderLevel" name="reorder_level" type="number" min="0" value="10">
+          </div>
+          <div class="field">
+            <label class="field-label" for="apOpeningQty">Opening Quantity</label>
+            <input class="control" id="apOpeningQty" name="opening_qty" type="number" min="0" step="0.01" value="0">
+          </div>
+          <div class="field">
+            <label class="field-label" for="apCostPrice">Cost Price (৳)</label>
+            <input class="control" id="apCostPrice" name="cost_price" type="number" min="0" step="0.01">
+          </div>
+          <div class="field">
+            <label class="field-label" for="apSalePrice">Selling Price (৳) *</label>
+            <input class="control" id="apSalePrice" name="sale_price" type="number" min="0" step="0.01" required>
+            <span class="field-error" data-error-for="sale_price"></span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" type="button" data-close-modal>Cancel</button>
+        <button class="btn btn-primary" type="submit" id="addProductSubmit">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ==================== Adjust Stock modal ==================== -->
+<div class="modal-overlay" id="adjustStockModal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="adjustStockTitle">
+    <div class="modal-header">
+      <h2 class="modal-title" id="adjustStockTitle">Adjust Stock</h2>
+      <button class="icon-btn" type="button" data-close-modal aria-label="Close">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+      </button>
+    </div>
+    <form id="adjustStockForm">
+      <div class="modal-body">
+        <div class="field">
+          <label class="field-label" for="asProduct">Product *</label>
+          <div class="select-wrap">
+            <select class="control" id="asProduct" name="product_id" required>
+              <option value="">Select...</option>
+            </select>
+            <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+          </div>
+        </div>
+        <div class="form-grid">
+          <div class="field">
+            <label class="field-label" for="asBranch">Branch *</label>
+            <div class="select-wrap">
+              <select class="control" id="asBranch" name="branch_id" required>
+                <option value="1" selected>Gulshan Branch</option>
+                <option value="2">Dhanmondi Branch</option>
+                <option value="3">Uttara Branch</option>
+              </select>
+              <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+          </div>
+          <div class="field">
+            <label class="field-label">Current Quantity</label>
+            <input class="control" id="asCurrentQty" value="—" disabled>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label" for="asChange">Quantity Change *</label>
+          <input class="control" id="asChange" name="quantity_change" type="number" step="0.01" required>
+          <span class="field-hint">Use a negative number to reduce stock.</span>
+          <span class="field-error" data-error-for="quantity_change"></span>
+        </div>
+        <div class="field">
+          <label class="field-label" for="asReason">Reason *</label>
+          <div class="select-wrap">
+            <select class="control" id="asReason" name="reason" required>
+              <option value="damage">Damage</option>
+              <option value="wastage">Wastage</option>
+              <option value="recount">Recount</option>
+              <option value="other">Other</option>
+            </select>
+            <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label" for="asNote">Note</label>
+          <textarea class="control" id="asNote" name="note" rows="2"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" type="button" data-close-modal>Cancel</button>
+        <button class="btn btn-primary" type="submit" id="adjustStockSubmit">Adjust Stock</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+<script>
+window.__ICONS__ = {"dashboard":"<rect width=\"7\" height=\"7\" x=\"3\" y=\"3\" rx=\"1\" /><rect width=\"7\" height=\"7\" x=\"14\" y=\"3\" rx=\"1\" /><rect width=\"7\" height=\"7\" x=\"14\" y=\"14\" rx=\"1\" /><rect width=\"7\" height=\"7\" x=\"3\" y=\"14\" rx=\"1\" />","pos":"<rect width=\"20\" height=\"5\" x=\"2\" y=\"3\" rx=\"1\" /><path d=\"M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8\" /><path d=\"M10 12h4\" />","inventory":"<path d=\"M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z\" /><path d=\"M12 22V12\" /><polyline points=\"3.29 7 12 12 20.71 7\" /><path d=\"m7.5 4.27 9 5.15\" />","purchases":"<circle cx=\"8\" cy=\"21\" r=\"1\" /><circle cx=\"19\" cy=\"21\" r=\"1\" /><path d=\"M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12\" />","sales":"<path d=\"M16 7h6v6\" /><path d=\"m22 7-8.5 8.5-5-5L2 17\" />","customers":"<path d=\"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2\" /><path d=\"M16 3.128a4 4 0 0 1 0 7.744\" /><path d=\"M22 21v-2a4 4 0 0 0-3-3.87\" /><circle cx=\"9\" cy=\"7\" r=\"4\" />","suppliers":"<path d=\"M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2\" /><path d=\"M15 18H9\" /><path d=\"M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14\" /><circle cx=\"17\" cy=\"18\" r=\"2\" /><circle cx=\"7\" cy=\"18\" r=\"2\" />","reports":"<path d=\"M21 12c.552 0 1.005-.449.95-.998a10 10 0 0 0-8.953-8.951c-.55-.055-.998.398-.998.95v8a1 1 0 0 0 1 1z\" /><path d=\"M21.21 15.89A10 10 0 1 1 8 2.83\" />","settings":"<path d=\"M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915\" /><circle cx=\"12\" cy=\"12\" r=\"3\" />","search":"<path d=\"m21 21-4.34-4.34\" /><circle cx=\"11\" cy=\"11\" r=\"8\" />","bell":"<path d=\"M10.268 21a2 2 0 0 0 3.464 0\" /><path d=\"M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326\" />","user":"<path d=\"M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2\" /><circle cx=\"12\" cy=\"7\" r=\"4\" />","chevron-down":"<path d=\"m6 9 6 6 6-6\" />","chevron-left":"<path d=\"m15 18-6-6 6-6\" />","chevron-right":"<path d=\"m9 18 6-6-6-6\" />","chevrons-left":"<path d=\"m11 17-5-5 5-5\" /><path d=\"m18 17-5-5 5-5\" />","menu":"<path d=\"M4 5h16\" /><path d=\"M4 12h16\" /><path d=\"M4 19h16\" />","upload":"<path d=\"M12 3v12\" /><path d=\"m17 8-5-5-5 5\" /><path d=\"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4\" />","download":"<path d=\"M12 15V3\" /><path d=\"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4\" /><path d=\"m7 10 5 5 5-5\" />","adjust":"<path d=\"M12 3v18\" /><path d=\"M3 12h18\" /><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\" />","plus":"<path d=\"M5 12h14\" /><path d=\"M12 5v14\" />","filter":"<path d=\"M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z\" />","barcode":"<path d=\"M3 5v14\" /><path d=\"M8 5v14\" /><path d=\"M12 5v14\" /><path d=\"M17 5v14\" /><path d=\"M21 5v14\" />","eye":"<path d=\"M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0\" /><circle cx=\"12\" cy=\"12\" r=\"3\" />","pencil":"<path d=\"M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z\" /><path d=\"m15 5 4 4\" />","more-vertical":"<circle cx=\"12\" cy=\"12\" r=\"1\" /><circle cx=\"12\" cy=\"5\" r=\"1\" /><circle cx=\"12\" cy=\"19\" r=\"1\" />","alert-triangle":"<path d=\"m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3\" /><path d=\"M12 9v4\" /><path d=\"M12 17h.01\" />","check-circle":"<circle cx=\"12\" cy=\"12\" r=\"10\" /><path d=\"m9 12 2 2 4-4\" />","coins":"<path d=\"M13.744 17.736a6 6 0 1 1-7.48-7.48\" /><path d=\"M15 6h1v4\" /><path d=\"m6.134 14.768.866-.5 2 3.464\" /><circle cx=\"16\" cy=\"8\" r=\"6\" />","close":"<path d=\"M18 6 6 18\" /><path d=\"m6 6 12 12\" />","sort":"<path d=\"m21 16-4 4-4-4\" /><path d=\"M17 20V4\" /><path d=\"m3 8 4-4 4 4\" /><path d=\"M7 4v16\" />"};
+window.__SEED__ = {"products":[{"id":1,"sku":"COLG-100","name":"Colgate Toothpaste 100g","category_id":1,"category_name":"Personal Care","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":120,"reorder_level":30,"cost_price":38,"sale_price":60,"stock_value":7200,"status":"in_stock","supplier_id":3,"supplier_name":"Unilever Bangladesh Distribution","updated_at":"2026-07-04 09:55:00"},{"id":2,"sku":"LAYS-040","name":"Lays Classic Chips 40g","category_id":2,"category_name":"Snacks","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":18,"reorder_level":30,"cost_price":18,"sale_price":30,"stock_value":540,"status":"low_stock","supplier_id":6,"supplier_name":"City Group Distribution","updated_at":"2026-07-04 09:40:00"},{"id":3,"sku":"COCA-500","name":"Coca Cola 500ml","category_id":3,"category_name":"Beverages","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":75,"reorder_level":25,"cost_price":28,"sale_price":45,"stock_value":3375,"status":"in_stock","supplier_id":6,"supplier_name":"City Group Distribution","updated_at":"2026-07-04 10:10:00"},{"id":4,"sku":"DET-125","name":"Dettol Soap 125g","category_id":1,"category_name":"Personal Care","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":5,"reorder_level":20,"cost_price":32,"sale_price":40,"stock_value":200,"status":"low_stock","supplier_id":3,"supplier_name":"Unilever Bangladesh Distribution","updated_at":"2026-07-04 09:22:00"},{"id":5,"sku":"SUN-180","name":"Sunsilk Shampoo 180ml","category_id":1,"category_name":"Personal Care","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":0,"reorder_level":15,"cost_price":85,"sale_price":95,"stock_value":0,"status":"out_of_stock","supplier_id":3,"supplier_name":"Unilever Bangladesh Distribution","updated_at":"2026-07-04 08:45:00"},{"id":6,"sku":"TIS-200","name":"Tissue Box (200 Pulls)","category_id":4,"category_name":"Household","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":60,"reorder_level":20,"cost_price":70,"sale_price":85,"stock_value":5100,"status":"in_stock","supplier_id":2,"supplier_name":"ACI Consumer Brands","updated_at":"2026-07-04 09:05:00"},{"id":7,"sku":"PRAN-250","name":"Pran Mango Juice 250ml","category_id":3,"category_name":"Beverages","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":22,"reorder_level":30,"cost_price":20,"sale_price":25,"stock_value":550,"status":"low_stock","supplier_id":4,"supplier_name":"PRAN-RFL Distribution","updated_at":"2026-07-04 09:30:00"},{"id":8,"sku":"RIN-1KG","name":"Rin Detergent Powder 1kg","category_id":4,"category_name":"Household","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":110,"reorder_level":25,"cost_price":120,"sale_price":150,"stock_value":16500,"status":"in_stock","supplier_id":3,"supplier_name":"Unilever Bangladesh Distribution","updated_at":"2026-07-04 10:00:00"},{"id":9,"sku":"LUX-100","name":"Lux Soap 100g","category_id":1,"category_name":"Personal Care","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":98,"reorder_level":25,"cost_price":30,"sale_price":42,"stock_value":4116,"status":"in_stock","supplier_id":3,"supplier_name":"Unilever Bangladesh Distribution","updated_at":"2026-07-02 08:00:00"},{"id":9,"sku":"LUX-100","name":"Lux Soap 100g","category_id":1,"category_name":"Personal Care","branch_id":2,"branch_name":"Dhanmondi Branch","unit":"Pcs","quantity":52,"reorder_level":25,"cost_price":30,"sale_price":42,"stock_value":2184,"status":"in_stock","supplier_id":3,"supplier_name":"Unilever Bangladesh Distribution","updated_at":"2026-07-02 08:00:00"},{"id":10,"sku":"PEP-150","name":"Pepsodent Toothpaste 150g","category_id":1,"category_name":"Personal Care","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":0,"reorder_level":20,"cost_price":45,"sale_price":68,"stock_value":0,"status":"out_of_stock","supplier_id":3,"supplier_name":"Unilever Bangladesh Distribution","updated_at":"2026-07-03 09:07:00"},{"id":11,"sku":"HNS-200","name":"Head & Shoulders Shampoo 200ml","category_id":1,"category_name":"Personal Care","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":0,"reorder_level":12,"cost_price":150,"sale_price":195,"stock_value":0,"status":"out_of_stock","supplier_id":3,"supplier_name":"Unilever Bangladesh Distribution","updated_at":"2026-07-04 10:14:00"},{"id":12,"sku":"VAS-100","name":"Vaseline Body Lotion 100ml","category_id":1,"category_name":"Personal Care","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":51,"reorder_level":15,"cost_price":95,"sale_price":130,"stock_value":6630,"status":"in_stock","supplier_id":3,"supplier_name":"Unilever Bangladesh Distribution","updated_at":"2026-07-05 11:21:00"},{"id":12,"sku":"VAS-100","name":"Vaseline Body Lotion 100ml","category_id":1,"category_name":"Personal Care","branch_id":3,"branch_name":"Uttara Branch","unit":"Pcs","quantity":46,"reorder_level":15,"cost_price":95,"sale_price":130,"stock_value":5980,"status":"in_stock","supplier_id":3,"supplier_name":"Unilever Bangladesh Distribution","updated_at":"2026-07-05 11:21:00"},{"id":13,"sku":"NIV-050","name":"Nivea Cream 50ml","category_id":1,"category_name":"Personal Care","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":6,"reorder_level":10,"cost_price":110,"sale_price":145,"stock_value":870,"status":"low_stock","supplier_id":3,"supplier_name":"Unilever Bangladesh Distribution","updated_at":"2026-07-06 12:28:00"},{"id":14,"sku":"CLS-100","name":"Closeup Toothpaste 100g","category_id":1,"category_name":"Personal Care","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":0,"reorder_level":25,"cost_price":40,"sale_price":58,"stock_value":0,"status":"out_of_stock","supplier_id":3,"supplier_name":"Unilever Bangladesh Distribution","updated_at":"2026-07-07 13:35:00"},{"id":15,"sku":"DOV-100","name":"Dove Soap 100g","category_id":1,"category_name":"Personal Care","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":73,"reorder_level":20,"cost_price":55,"sale_price":75,"stock_value":5475,"status":"in_stock","supplier_id":3,"supplier_name":"Unilever Bangladesh Distribution","updated_at":"2026-07-02 14:42:00"},{"id":16,"sku":"GRE-070","name":"Nivea Men Face Wash 100ml","category_id":1,"category_name":"Personal Care","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":7,"reorder_level":10,"cost_price":130,"sale_price":175,"stock_value":1225,"status":"low_stock","supplier_id":3,"supplier_name":"Unilever Bangladesh Distribution","updated_at":"2026-07-03 15:49:00"},{"id":16,"sku":"GRE-070","name":"Nivea Men Face Wash 100ml","category_id":1,"category_name":"Personal Care","branch_id":3,"branch_name":"Uttara Branch","unit":"Pcs","quantity":3,"reorder_level":10,"cost_price":130,"sale_price":175,"stock_value":525,"status":"low_stock","supplier_id":3,"supplier_name":"Unilever Bangladesh Distribution","updated_at":"2026-07-03 15:49:00"},{"id":17,"sku":"CHAN-150","name":"Pran Chanachur 150g","category_id":2,"category_name":"Snacks","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":63,"reorder_level":30,"cost_price":35,"sale_price":50,"stock_value":3150,"status":"in_stock","supplier_id":4,"supplier_name":"PRAN-RFL Distribution","updated_at":"2026-07-04 16:56:00"},{"id":18,"sku":"OLY-100","name":"Olympic Energy Biscuit 100g","category_id":2,"category_name":"Snacks","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":0,"reorder_level":40,"cost_price":12,"sale_price":20,"stock_value":0,"status":"out_of_stock","supplier_id":5,"supplier_name":"Akij Food & Beverage","updated_at":"2026-07-05 17:03:00"},{"id":19,"sku":"NOOD-070","name":"Mr. Noodles Instant Noodles 70g","category_id":2,"category_name":"Snacks","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":0,"reorder_level":40,"cost_price":15,"sale_price":25,"stock_value":0,"status":"out_of_stock","supplier_id":5,"supplier_name":"Akij Food & Beverage","updated_at":"2026-07-06 08:10:00"},{"id":19,"sku":"NOOD-070","name":"Mr. Noodles Instant Noodles 70g","category_id":2,"category_name":"Snacks","branch_id":2,"branch_name":"Dhanmondi Branch","unit":"Pcs","quantity":20,"reorder_level":40,"cost_price":15,"sale_price":25,"stock_value":500,"status":"low_stock","supplier_id":5,"supplier_name":"Akij Food & Beverage","updated_at":"2026-07-06 08:10:00"},{"id":20,"sku":"BSC-090","name":"Bombay Sweets Potato Chips 90g","category_id":2,"category_name":"Snacks","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":137,"reorder_level":25,"cost_price":30,"sale_price":45,"stock_value":6165,"status":"in_stock","supplier_id":5,"supplier_name":"Akij Food & Beverage","updated_at":"2026-07-07 09:17:00"},{"id":21,"sku":"PRI-107","name":"Pringles Original 107g","category_id":2,"category_name":"Snacks","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":113,"reorder_level":10,"cost_price":220,"sale_price":290,"stock_value":32770,"status":"in_stock","supplier_id":6,"supplier_name":"City Group Distribution","updated_at":"2026-07-02 10:24:00"},{"id":22,"sku":"NAB-200","name":"Nabisco Cream Cracker 200g","category_id":2,"category_name":"Snacks","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":19,"reorder_level":20,"cost_price":40,"sale_price":58,"stock_value":1102,"status":"low_stock","supplier_id":5,"supplier_name":"Akij Food & Beverage","updated_at":"2026-07-03 11:31:00"},{"id":23,"sku":"ACI-CRK-100","name":"ACI Potato Crackers 100g","category_id":2,"category_name":"Snacks","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":59,"reorder_level":25,"cost_price":22,"sale_price":35,"stock_value":2065,"status":"in_stock","supplier_id":2,"supplier_name":"ACI Consumer Brands","updated_at":"2026-07-04 12:38:00"},{"id":23,"sku":"ACI-CRK-100","name":"ACI Potato Crackers 100g","category_id":2,"category_name":"Snacks","branch_id":2,"branch_name":"Dhanmondi Branch","unit":"Pcs","quantity":33,"reorder_level":25,"cost_price":22,"sale_price":35,"stock_value":1155,"status":"in_stock","supplier_id":2,"supplier_name":"ACI Consumer Brands","updated_at":"2026-07-04 12:38:00"},{"id":24,"sku":"KEYA-CHOC","name":"Ferrero Rocher-style Choco Pack 100g","category_id":2,"category_name":"Snacks","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":7,"reorder_level":8,"cost_price":180,"sale_price":240,"stock_value":1680,"status":"low_stock","supplier_id":6,"supplier_name":"City Group Distribution","updated_at":"2026-07-05 13:45:00"},{"id":25,"sku":"SPR-500","name":"Sprite 500ml","category_id":3,"category_name":"Beverages","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":133,"reorder_level":25,"cost_price":28,"sale_price":45,"stock_value":5985,"status":"in_stock","supplier_id":6,"supplier_name":"City Group Distribution","updated_at":"2026-07-06 14:52:00"},{"id":26,"sku":"FAN-500","name":"Fanta 500ml","category_id":3,"category_name":"Beverages","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":70,"reorder_level":25,"cost_price":28,"sale_price":45,"stock_value":3150,"status":"in_stock","supplier_id":6,"supplier_name":"City Group Distribution","updated_at":"2026-07-07 15:59:00"},{"id":26,"sku":"FAN-500","name":"Fanta 500ml","category_id":3,"category_name":"Beverages","branch_id":3,"branch_name":"Uttara Branch","unit":"Pcs","quantity":45,"reorder_level":25,"cost_price":28,"sale_price":45,"stock_value":2025,"status":"in_stock","supplier_id":6,"supplier_name":"City Group Distribution","updated_at":"2026-07-07 15:59:00"},{"id":27,"sku":"FRU-250","name":"Pran Frutika Mango Juice 250ml","category_id":3,"category_name":"Beverages","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":69,"reorder_level":30,"cost_price":20,"sale_price":28,"stock_value":1932,"status":"in_stock","supplier_id":4,"supplier_name":"PRAN-RFL Distribution","updated_at":"2026-07-02 16:06:00"},{"id":28,"sku":"RC-500","name":"RC Cola 500ml","category_id":3,"category_name":"Beverages","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":33,"reorder_level":20,"cost_price":25,"sale_price":40,"stock_value":1320,"status":"in_stock","supplier_id":6,"supplier_name":"City Group Distribution","updated_at":"2026-07-03 17:13:00"},{"id":29,"sku":"MOJO-500","name":"Mojo Cola 500ml","category_id":3,"category_name":"Beverages","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":16,"reorder_level":20,"cost_price":24,"sale_price":38,"stock_value":608,"status":"low_stock","supplier_id":5,"supplier_name":"Akij Food & Beverage","updated_at":"2026-07-04 08:20:00"},{"id":30,"sku":"IGL-1L","name":"Igloo Mineral Water 1L","category_id":3,"category_name":"Beverages","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":21,"reorder_level":40,"cost_price":15,"sale_price":25,"stock_value":525,"status":"low_stock","supplier_id":5,"supplier_name":"Akij Food & Beverage","updated_at":"2026-07-05 09:27:00"},{"id":30,"sku":"IGL-1L","name":"Igloo Mineral Water 1L","category_id":3,"category_name":"Beverages","branch_id":3,"branch_name":"Uttara Branch","unit":"Pcs","quantity":10,"reorder_level":40,"cost_price":15,"sale_price":25,"stock_value":250,"status":"low_stock","supplier_id":5,"supplier_name":"Akij Food & Beverage","updated_at":"2026-07-05 09:27:00"},{"id":31,"sku":"UP-500","name":"Pran Up Drink 500ml","category_id":3,"category_name":"Beverages","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":70,"reorder_level":25,"cost_price":22,"sale_price":35,"stock_value":2450,"status":"in_stock","supplier_id":4,"supplier_name":"PRAN-RFL Distribution","updated_at":"2026-07-06 10:34:00"},{"id":32,"sku":"SEV-250","name":"Seven Up 500ml","category_id":3,"category_name":"Beverages","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":52,"reorder_level":20,"cost_price":28,"sale_price":45,"stock_value":2340,"status":"in_stock","supplier_id":6,"supplier_name":"City Group Distribution","updated_at":"2026-07-07 11:41:00"},{"id":33,"sku":"WHL-1KG","name":"Wheel Detergent Powder 1kg","category_id":4,"category_name":"Household","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":113,"reorder_level":25,"cost_price":95,"sale_price":125,"stock_value":14125,"status":"in_stock","supplier_id":3,"supplier_name":"Unilever Bangladesh Distribution","updated_at":"2026-07-02 12:48:00"},{"id":33,"sku":"WHL-1KG","name":"Wheel Detergent Powder 1kg","category_id":4,"category_name":"Household","branch_id":2,"branch_name":"Dhanmondi Branch","unit":"Pcs","quantity":82,"reorder_level":25,"cost_price":95,"sale_price":125,"stock_value":10250,"status":"in_stock","supplier_id":3,"supplier_name":"Unilever Bangladesh Distribution","updated_at":"2026-07-02 12:48:00"},{"id":34,"sku":"HAR-500","name":"Harpic Toilet Cleaner 500ml","category_id":4,"category_name":"Household","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":70,"reorder_level":15,"cost_price":110,"sale_price":145,"stock_value":10150,"status":"in_stock","supplier_id":3,"supplier_name":"Unilever Bangladesh Distribution","updated_at":"2026-07-03 13:55:00"},{"id":35,"sku":"LIZ-500","name":"Lizol Floor Cleaner 500ml","category_id":4,"category_name":"Household","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":130,"reorder_level":12,"cost_price":130,"sale_price":170,"stock_value":22100,"status":"in_stock","supplier_id":3,"supplier_name":"Unilever Bangladesh Distribution","updated_at":"2026-07-04 14:02:00"},{"id":36,"sku":"SURF-1KG","name":"Surf Excel Detergent 1kg","category_id":4,"category_name":"Household","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":0,"reorder_level":15,"cost_price":180,"sale_price":230,"stock_value":0,"status":"out_of_stock","supplier_id":3,"supplier_name":"Unilever Bangladesh Distribution","updated_at":"2026-07-05 15:09:00"},{"id":37,"sku":"VIM-BAR","name":"Vim Dishwash Bar","category_id":4,"category_name":"Household","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":117,"reorder_level":30,"cost_price":18,"sale_price":28,"stock_value":3276,"status":"in_stock","supplier_id":3,"supplier_name":"Unilever Bangladesh Distribution","updated_at":"2026-07-06 16:16:00"},{"id":37,"sku":"VIM-BAR","name":"Vim Dishwash Bar","category_id":4,"category_name":"Household","branch_id":2,"branch_name":"Dhanmondi Branch","unit":"Pcs","quantity":88,"reorder_level":30,"cost_price":18,"sale_price":28,"stock_value":2464,"status":"in_stock","supplier_id":3,"supplier_name":"Unilever Bangladesh Distribution","updated_at":"2026-07-06 16:16:00"},{"id":38,"sku":"KEYA-1KG","name":"Keya Detergent Powder 1kg","category_id":4,"category_name":"Household","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":17,"reorder_level":20,"cost_price":88,"sale_price":118,"stock_value":2006,"status":"low_stock","supplier_id":6,"supplier_name":"City Group Distribution","updated_at":"2026-07-07 17:23:00"},{"id":39,"sku":"MOP-STD","name":"Standard Floor Mop","category_id":4,"category_name":"Household","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":44,"reorder_level":6,"cost_price":220,"sale_price":320,"stock_value":14080,"status":"in_stock","supplier_id":6,"supplier_name":"City Group Distribution","updated_at":"2026-07-02 08:30:00"},{"id":40,"sku":"GARB-BAG","name":"Garbage Bag Roll (30pcs)","category_id":4,"category_name":"Household","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":0,"reorder_level":20,"cost_price":60,"sale_price":90,"stock_value":0,"status":"out_of_stock","supplier_id":6,"supplier_name":"City Group Distribution","updated_at":"2026-07-03 09:37:00"},{"id":40,"sku":"GARB-BAG","name":"Garbage Bag Roll (30pcs)","category_id":4,"category_name":"Household","branch_id":3,"branch_name":"Uttara Branch","unit":"Pcs","quantity":4,"reorder_level":20,"cost_price":60,"sale_price":90,"stock_value":360,"status":"low_stock","supplier_id":6,"supplier_name":"City Group Distribution","updated_at":"2026-07-03 09:37:00"},{"id":41,"sku":"MILK-1L","name":"Pran Milk 1L","category_id":5,"category_name":"Dairy","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":56,"reorder_level":20,"cost_price":78,"sale_price":95,"stock_value":5320,"status":"in_stock","supplier_id":4,"supplier_name":"PRAN-RFL Distribution","updated_at":"2026-07-04 10:44:00"},{"id":42,"sku":"ICE-700","name":"Igloo Ice Cream 700ml","category_id":5,"category_name":"Dairy","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":108,"reorder_level":8,"cost_price":250,"sale_price":320,"stock_value":34560,"status":"in_stock","supplier_id":5,"supplier_name":"Akij Food & Beverage","updated_at":"2026-07-05 11:51:00"},{"id":43,"sku":"FMILK-1L","name":"Farm Fresh Milk 1L","category_id":5,"category_name":"Dairy","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":94,"reorder_level":18,"cost_price":82,"sale_price":100,"stock_value":9400,"status":"in_stock","supplier_id":6,"supplier_name":"City Group Distribution","updated_at":"2026-07-06 12:58:00"},{"id":44,"sku":"YOG-400","name":"Aarong Dairy Yogurt 400g","category_id":5,"category_name":"Dairy","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":88,"reorder_level":15,"cost_price":90,"sale_price":115,"stock_value":10120,"status":"in_stock","supplier_id":6,"supplier_name":"City Group Distribution","updated_at":"2026-07-07 13:05:00"},{"id":44,"sku":"YOG-400","name":"Aarong Dairy Yogurt 400g","category_id":5,"category_name":"Dairy","branch_id":3,"branch_name":"Uttara Branch","unit":"Pcs","quantity":72,"reorder_level":15,"cost_price":90,"sale_price":115,"stock_value":8280,"status":"in_stock","supplier_id":6,"supplier_name":"City Group Distribution","updated_at":"2026-07-07 13:05:00"},{"id":45,"sku":"BUTTER-200","name":"Aarong Butter 200g","category_id":5,"category_name":"Dairy","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":9,"reorder_level":8,"cost_price":220,"sale_price":270,"stock_value":2430,"status":"in_stock","supplier_id":6,"supplier_name":"City Group Distribution","updated_at":"2026-08-06 01:40:49"},{"id":46,"sku":"CHEESE-200","name":"Processed Cheese Slice 200g","category_id":5,"category_name":"Dairy","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":125,"reorder_level":6,"cost_price":260,"sale_price":320,"stock_value":40000,"status":"in_stock","supplier_id":6,"supplier_name":"City Group Distribution","updated_at":"2026-07-03 15:19:00"},{"id":47,"sku":"RICE-5KG","name":"Teer Rice 5kg","category_id":6,"category_name":"Grocery & Staples","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":94,"reorder_level":15,"cost_price":380,"sale_price":430,"stock_value":40420,"status":"in_stock","supplier_id":5,"supplier_name":"Akij Food & Beverage","updated_at":"2026-07-04 16:26:00"},{"id":47,"sku":"RICE-5KG","name":"Teer Rice 5kg","category_id":6,"category_name":"Grocery & Staples","branch_id":2,"branch_name":"Dhanmondi Branch","unit":"Pcs","quantity":69,"reorder_level":15,"cost_price":380,"sale_price":430,"stock_value":29670,"status":"in_stock","supplier_id":5,"supplier_name":"Akij Food & Beverage","updated_at":"2026-07-04 16:26:00"},{"id":48,"sku":"OIL-1L","name":"Rupchanda Soyabean Oil 1L","category_id":6,"category_name":"Grocery & Staples","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":19,"reorder_level":25,"cost_price":168,"sale_price":189,"stock_value":3591,"status":"low_stock","supplier_id":2,"supplier_name":"ACI Consumer Brands","updated_at":"2026-07-05 17:33:00"},{"id":49,"sku":"SUGAR-1KG","name":"Fresh Sugar 1kg","category_id":6,"category_name":"Grocery & Staples","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":21,"reorder_level":25,"cost_price":118,"sale_price":135,"stock_value":2835,"status":"low_stock","supplier_id":2,"supplier_name":"ACI Consumer Brands","updated_at":"2026-07-06 08:40:00"},{"id":50,"sku":"TURM-200","name":"Radhuni Turmeric Powder 200g","category_id":6,"category_name":"Grocery & Staples","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":42,"reorder_level":20,"cost_price":60,"sale_price":80,"stock_value":3360,"status":"in_stock","supplier_id":4,"supplier_name":"PRAN-RFL Distribution","updated_at":"2026-07-07 09:47:00"},{"id":51,"sku":"SALT-1KG","name":"ACI Pure Salt 1kg","category_id":6,"category_name":"Grocery & Staples","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":95,"reorder_level":25,"cost_price":32,"sale_price":42,"stock_value":3990,"status":"in_stock","supplier_id":2,"supplier_name":"ACI Consumer Brands","updated_at":"2026-07-02 10:54:00"},{"id":51,"sku":"SALT-1KG","name":"ACI Pure Salt 1kg","category_id":6,"category_name":"Grocery & Staples","branch_id":2,"branch_name":"Dhanmondi Branch","unit":"Pcs","quantity":64,"reorder_level":25,"cost_price":32,"sale_price":42,"stock_value":2688,"status":"in_stock","supplier_id":2,"supplier_name":"ACI Consumer Brands","updated_at":"2026-07-02 10:54:00"},{"id":52,"sku":"BRANOIL-1L","name":"Fortune Rice Bran Oil 1L","category_id":6,"category_name":"Grocery & Staples","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":31,"reorder_level":15,"cost_price":175,"sale_price":199,"stock_value":6169,"status":"in_stock","supplier_id":6,"supplier_name":"City Group Distribution","updated_at":"2026-07-03 11:01:00"},{"id":53,"sku":"DAL-1KG","name":"Pusti Lentil (Masoor Dal) 1kg","category_id":6,"category_name":"Grocery & Staples","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":121,"reorder_level":20,"cost_price":110,"sale_price":135,"stock_value":16335,"status":"in_stock","supplier_id":4,"supplier_name":"PRAN-RFL Distribution","updated_at":"2026-07-04 12:08:00"},{"id":54,"sku":"FLOUR-1KG","name":"Fresh Atta Flour 1kg","category_id":6,"category_name":"Grocery & Staples","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":24,"reorder_level":25,"cost_price":55,"sale_price":68,"stock_value":1632,"status":"low_stock","supplier_id":2,"supplier_name":"ACI Consumer Brands","updated_at":"2026-07-05 13:15:00"},{"id":54,"sku":"FLOUR-1KG","name":"Fresh Atta Flour 1kg","category_id":6,"category_name":"Grocery & Staples","branch_id":3,"branch_name":"Uttara Branch","unit":"Pcs","quantity":11,"reorder_level":25,"cost_price":55,"sale_price":68,"stock_value":748,"status":"low_stock","supplier_id":2,"supplier_name":"ACI Consumer Brands","updated_at":"2026-07-05 13:15:00"},{"id":55,"sku":"TEA-100","name":"Ispahani Mirzapore Tea 100g","category_id":6,"category_name":"Grocery & Staples","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":39,"reorder_level":20,"cost_price":85,"sale_price":110,"stock_value":4290,"status":"in_stock","supplier_id":6,"supplier_name":"City Group Distribution","updated_at":"2026-07-06 14:22:00"},{"id":56,"sku":"SEMAI-200","name":"Kazi Semai 200g","category_id":6,"category_name":"Grocery & Staples","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":39,"reorder_level":15,"cost_price":40,"sale_price":55,"stock_value":2145,"status":"in_stock","supplier_id":4,"supplier_name":"PRAN-RFL Distribution","updated_at":"2026-07-07 15:29:00"},{"id":57,"sku":"BREAD-400","name":"Olympic Sandwich Bread 400g","category_id":7,"category_name":"Bakery","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":105,"reorder_level":20,"cost_price":45,"sale_price":60,"stock_value":6300,"status":"in_stock","supplier_id":5,"supplier_name":"Akij Food & Beverage","updated_at":"2026-07-02 16:36:00"},{"id":58,"sku":"BUN-PACK","name":"Cream Bun Pack (6pcs)","category_id":7,"category_name":"Bakery","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":40,"reorder_level":15,"cost_price":60,"sale_price":85,"stock_value":3400,"status":"in_stock","supplier_id":5,"supplier_name":"Akij Food & Beverage","updated_at":"2026-07-03 17:43:00"},{"id":58,"sku":"BUN-PACK","name":"Cream Bun Pack (6pcs)","category_id":7,"category_name":"Bakery","branch_id":3,"branch_name":"Uttara Branch","unit":"Pcs","quantity":19,"reorder_level":15,"cost_price":60,"sale_price":85,"stock_value":1615,"status":"in_stock","supplier_id":5,"supplier_name":"Akij Food & Beverage","updated_at":"2026-07-03 17:43:00"},{"id":59,"sku":"CAKE-SLICE","name":"Chocolate Cake Slice Pack","category_id":7,"category_name":"Bakery","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":69,"reorder_level":10,"cost_price":70,"sale_price":100,"stock_value":6900,"status":"in_stock","supplier_id":5,"supplier_name":"Akij Food & Beverage","updated_at":"2026-07-04 08:50:00"},{"id":60,"sku":"BISC-COOK","name":"Butter Cookies 200g","category_id":7,"category_name":"Bakery","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":96,"reorder_level":15,"cost_price":90,"sale_price":120,"stock_value":11520,"status":"in_stock","supplier_id":5,"supplier_name":"Akij Food & Beverage","updated_at":"2026-07-05 09:57:00"},{"id":61,"sku":"DIAP-M20","name":"Huggies Diapers (M) 20pcs","category_id":8,"category_name":"Baby Care","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":23,"reorder_level":10,"cost_price":480,"sale_price":580,"stock_value":13340,"status":"in_stock","supplier_id":6,"supplier_name":"City Group Distribution","updated_at":"2026-07-06 10:04:00"},{"id":61,"sku":"DIAP-M20","name":"Huggies Diapers (M) 20pcs","category_id":8,"category_name":"Baby Care","branch_id":2,"branch_name":"Dhanmondi Branch","unit":"Pcs","quantity":17,"reorder_level":10,"cost_price":480,"sale_price":580,"stock_value":9860,"status":"in_stock","supplier_id":6,"supplier_name":"City Group Distribution","updated_at":"2026-07-06 10:04:00"},{"id":62,"sku":"BPOW-100","name":"Johnson's Baby Powder 100g","category_id":8,"category_name":"Baby Care","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":6,"reorder_level":10,"cost_price":140,"sale_price":180,"stock_value":1080,"status":"low_stock","supplier_id":3,"supplier_name":"Unilever Bangladesh Distribution","updated_at":"2026-07-07 11:11:00"},{"id":63,"sku":"BBOT-STD","name":"Farlin Baby Feeding Bottle","category_id":8,"category_name":"Baby Care","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":87,"reorder_level":6,"cost_price":220,"sale_price":290,"stock_value":25230,"status":"in_stock","supplier_id":6,"supplier_name":"City Group Distribution","updated_at":"2026-07-02 12:18:00"},{"id":64,"sku":"BSOAP-075","name":"Johnson's Baby Soap 75g","category_id":8,"category_name":"Baby Care","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":0,"reorder_level":15,"cost_price":60,"sale_price":82,"stock_value":0,"status":"out_of_stock","supplier_id":3,"supplier_name":"Unilever Bangladesh Distribution","updated_at":"2026-07-03 13:25:00"},{"id":65,"sku":"PEN-PACK","name":"Doel Pencil Pack (10pcs)","category_id":6,"category_name":"Grocery & Staples","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":79,"reorder_level":15,"cost_price":40,"sale_price":60,"stock_value":4740,"status":"in_stock","supplier_id":6,"supplier_name":"City Group Distribution","updated_at":"2026-07-04 14:32:00"},{"id":65,"sku":"PEN-PACK","name":"Doel Pencil Pack (10pcs)","category_id":6,"category_name":"Grocery & Staples","branch_id":2,"branch_name":"Dhanmondi Branch","unit":"Pcs","quantity":46,"reorder_level":15,"cost_price":40,"sale_price":60,"stock_value":2760,"status":"in_stock","supplier_id":6,"supplier_name":"City Group Distribution","updated_at":"2026-07-04 14:32:00"},{"id":66,"sku":"NOTE-200","name":"Kazi Notebook 200pg","category_id":6,"category_name":"Grocery & Staples","branch_id":1,"branch_name":"Gulshan Branch","unit":"Pcs","quantity":49,"reorder_level":12,"cost_price":55,"sale_price":75,"stock_value":3675,"status":"in_stock","supplier_id":6,"supplier_name":"City Group Distribution","updated_at":"2026-07-05 15:39:00"}],"branches":[{"id":1,"name":"Gulshan Branch","address":"Road 11, Gulshan-1, Dhaka","phone":"01711-000001","is_main":1},{"id":2,"name":"Dhanmondi Branch","address":"Road 27, Dhanmondi, Dhaka","phone":"01711-000002","is_main":0},{"id":3,"name":"Uttara Branch","address":"Sector 7, Uttara, Dhaka","phone":"01711-000003","is_main":0}],"categories":[{"id":8,"name":"Baby Care","parent_id":null},{"id":7,"name":"Bakery","parent_id":null},{"id":3,"name":"Beverages","parent_id":null},{"id":5,"name":"Dairy","parent_id":null},{"id":6,"name":"Grocery & Staples","parent_id":null},{"id":4,"name":"Household","parent_id":null},{"id":1,"name":"Personal Care","parent_id":null},{"id":2,"name":"Snacks","parent_id":null}],"suppliers":[{"id":2,"name":"ACI Consumer Brands","contact_person":"Nasrin Akter","phone":"01911-223355","outstanding_payable":"0.00"},{"id":5,"name":"Akij Food & Beverage","contact_person":"Mahmudul Hasan","phone":"01911-223388","outstanding_payable":"0.00"},{"id":6,"name":"City Group Distribution","contact_person":"Farhana Yasmin","phone":"01911-223399","outstanding_payable":"0.00"},{"id":4,"name":"PRAN-RFL Distribution","contact_person":"Shirin Sultana","phone":"01911-223377","outstanding_payable":"0.00"},{"id":1,"name":"Square Distribution Ltd.","contact_person":"Kamal Hossain","phone":"01911-223344","outstanding_payable":"0.00"},{"id":3,"name":"Unilever Bangladesh Distribution","contact_person":"Rafiqul Islam","phone":"01911-223366","outstanding_payable":"0.00"}]};
+</script>
+<script>
+(function () {
+  'use strict';
+
+  /* ============================================================
+     ICONS + SEED DATA are injected as JSON above this script tag
+     (window.__ICONS__, window.__SEED__) — see the assembly step.
+     ============================================================ */
+  const ICONS = window.__ICONS__;
+  const SEED = window.__SEED__;
+
+  function icon(name, cls) {
+    cls = cls || 'icon';
+    return '<svg class="' + cls + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICONS[name] || '') + '</svg>';
+  }
+
+  /* ============================================================
+     In-memory "database" — a real, mutable copy of the seed data.
+     Add Product / Adjust Stock genuinely mutate this array, so the
+     demo behaves like the real app, just without a server.
+     ============================================================ */
+  let PRODUCTS = SEED.products.map((p) => Object.assign({}, p));
+  let nextProductId = Math.max.apply(null, PRODUCTS.map((p) => p.id)) + 1;
+  const BRANCHES = SEED.branches;
+  const CATEGORIES = SEED.categories;
+  const SUPPLIERS = SEED.suppliers;
+
+  const state = {
+    search: '', category_id: '', branch_id: '', supplier_id: '', stock_status: '',
+    sort: '', dir: 'asc', page: 1, per_page: 10,
+  };
+
+  /* ============================================================
+     Formatting helpers (mirror the PHP app's app/Support/format.php
+     and assets/js/inventory.js one-for-one).
+     ============================================================ */
+  function money(n) {
+    return '৳ ' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function num(n, decimals) {
+    return Number(n).toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+  }
+  function updatedParts(mysqlDatetime) {
+    if (!mysqlDatetime) return { date: '—', time: '' };
+    const d = new Date(String(mysqlDatetime).replace(' ', 'T'));
+    if (isNaN(d.getTime())) return { date: '—', time: '' };
+    return {
+      date: d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+      time: d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
+    };
+  }
+  function escHtml(s) {
+    const d = document.createElement('div');
+    d.textContent = s === null || s === undefined ? '' : String(s);
+    return d.innerHTML;
+  }
+  function statusFor(qty, reorderLevel) {
+    if (qty <= 0) return 'out_of_stock';
+    if (qty <= reorderLevel) return 'low_stock';
+    return 'in_stock';
+  }
+  const STATUS_BADGE = { in_stock: 'badge-success', low_stock: 'badge-danger', out_of_stock: 'badge-neutral' };
+  const STATUS_LABEL = { in_stock: 'In Stock', low_stock: 'Low Stock', out_of_stock: 'Out of Stock' };
+  const QTY_TONE = { in_stock: 'tone-green', low_stock: 'tone-red', out_of_stock: 'tone-red' };
+
+  /* ============================================================
+     Toasts
+     ============================================================ */
+  const toastStack = document.getElementById('toastStack');
+  function showToast(message, tone) {
+    const el = document.createElement('div');
+    el.className = 'toast' + (tone ? ' is-' + tone : '');
+    el.textContent = message;
+    toastStack.appendChild(el);
+    setTimeout(() => {
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(8px)';
+      setTimeout(() => el.remove(), 220);
+    }, 3200);
+  }
+  document.addEventListener('click', (evt) => {
+    const trigger = evt.target.closest('[data-toast]');
+    if (trigger) showToast(trigger.getAttribute('data-toast'));
+  });
+
+  /* ============================================================
+     Sidebar nav
+     ============================================================ */
+  const NAV_ITEMS = [
+    { id: 'dashboard', icon: 'dashboard', label: 'Dashboard' },
+    { id: 'pos', icon: 'pos', label: 'POS / Billing' },
+    { id: 'inventory', icon: 'inventory', label: 'Inventory' },
+    { id: 'purchases', icon: 'purchases', label: 'Purchases' },
+    { id: 'sales', icon: 'sales', label: 'Sales' },
+    { id: 'customers', icon: 'customers', label: 'Customers' },
+    { id: 'suppliers', icon: 'suppliers', label: 'Suppliers' },
+    { id: 'reports', icon: 'reports', label: 'Reports' },
+    { id: 'settings', icon: 'settings', label: 'Settings' },
+  ];
+  document.getElementById('sidebarNav').innerHTML = NAV_ITEMS.map((item) => `
+    <a class="nav-item${item.id === 'inventory' ? ' is-active' : ''}" href="#" data-nav="${item.id}">
+      ${icon(item.icon)}
+      <span class="nav-label">${item.label}</span>
+    </a>`).join('');
+
+  const ROUTES = {
+    dashboard: 'dashboard.html', inventory: 'inventory.html', purchases: 'purchase-orders.html',
+    sales: 'sales-history.html', customers: 'customers.html', reports: 'reports.html',
+    settings: 'settings.html'
+  };
+  document.querySelectorAll('.nav-item').forEach((a) => {
+    a.addEventListener('click', (evt) => {
+      evt.preventDefault();
+      const key = a.getAttribute('data-nav');
+      if (key === 'inventory') return;
+      if (ROUTES[key]) { window.location.href = ROUTES[key]; return; }
+      showToast("This demo only covers Inventory / Stock Management — the other screens aren't part of it.");
+      closeSidebar();
+    });
+  });
+
+  /* ============================================================
+     Sidebar (mobile) + generic dropdowns
+     ============================================================ */
+  const appShell = document.getElementById('appShell');
+  function closeSidebar() { appShell.classList.remove('sidebar-open'); }
+  document.getElementById('sidebarToggle').addEventListener('click', () => appShell.classList.toggle('sidebar-open'));
+  document.getElementById('sidebarBackdrop').addEventListener('click', closeSidebar);
+
+  function closeAllDropdowns(except) {
+    document.querySelectorAll('.dropdown-panel.is-open').forEach((panel) => {
+      if (panel !== except) panel.classList.remove('is-open');
+    });
+  }
+  document.addEventListener('click', (evt) => {
+    const toggle = evt.target.closest('#branchSelectBtn, #profileMenuBtn, #exportBtn, [data-row-menu-toggle]');
+    if (toggle) {
+      const panel = toggle.nextElementSibling;
+      const willOpen = !panel.classList.contains('is-open');
+      closeAllDropdowns();
+      if (willOpen) panel.classList.add('is-open');
+      evt.stopPropagation();
+      return;
+    }
+    if (!evt.target.closest('.dropdown-panel')) closeAllDropdowns();
+  });
+  document.addEventListener('keydown', (evt) => { if (evt.key === 'Escape') closeAllDropdowns(); });
+
+  /* ============================================================
+     Language toggle (visual only in this demo — see docs note in UI)
+     ============================================================ */
+  document.querySelectorAll('.lang-toggle [data-lang]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (btn.getAttribute('data-lang') === 'bn') {
+        showToast('বাংলা ভাষা এই ডেমোতে যুক্ত করা হয়নি — full app ships with bn/en both wired.');
+        return;
+      }
+      document.querySelectorAll('.lang-toggle button').forEach((b) => b.classList.remove('is-active'));
+      btn.classList.add('is-active');
+    });
+  });
+
+  /* ============================================================
+     Branch switcher (topbar) — cosmetic active-branch context,
+     independent of the filter bar's Branch filter (same split as
+     the real app: "which branch am I working from" vs "which
+     branch(es) to show in this list").
+     ============================================================ */
+  const branchLabel = document.getElementById('activeBranchLabel');
+  const branchPanel = document.getElementById('branchDropdownPanel');
+  const pulseActiveBranch = document.getElementById('pulseActiveBranch');
+  function renderBranchPanel() {
+    branchPanel.innerHTML = BRANCHES.map((b) => `<button type="button" data-branch-id="${b.id}">${escHtml(b.name)}</button>`).join('');
+    branchPanel.querySelectorAll('button').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const b = BRANCHES.find((x) => String(x.id) === btn.getAttribute('data-branch-id'));
+        branchLabel.textContent = b.name;
+        pulseActiveBranch.textContent = b.name;
+        branchPanel.classList.remove('is-open');
+      });
+    });
+  }
+  renderBranchPanel();
+
+  /* ============================================================
+     Pulse strip — this demo has no real sync engine, so it always
+     shows a settled "synced" state with the current time.
+     ============================================================ */
+  document.getElementById('pulseLastUpdate').textContent = new Date().toLocaleString('en-GB', {
+    day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true,
+  });
+
+  /* ============================================================
+     Page body (header, filter bar, KPI cards, table, pagination)
+     ============================================================ */
+  document.getElementById('pageBody').innerHTML = `
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Inventory / Stock Management</h1>
+        <p class="page-subtitle">Manage and track your stock across all branches</p>
+      </div>
+      <div class="page-actions">
+        <button class="btn btn-outline" type="button" data-toast="Demo only — Import isn't wired up here.">${icon('upload')} Import</button>
+        <div class="dropdown export-dropdown" id="exportDropdown">
+          <button class="btn btn-outline" id="exportBtn" type="button">${icon('download')} Export ${icon('chevron-down', 'chev')}</button>
+          <div class="dropdown-panel" id="exportPanel">
+            <button type="button" id="exportCsvBtn">${icon('download')} Export as CSV</button>
+            <button type="button" data-toast="Demo only — Excel export isn't wired up here.">${icon('download')} Export as Excel</button>
+            <button type="button" data-toast="Demo only — PDF export isn't wired up here.">${icon('download')} Export as PDF</button>
+          </div>
+        </div>
+        <button class="btn btn-outline" id="btnAdjustStock" type="button">${icon('adjust')} Adjust Stock</button>
+        <button class="btn btn-primary" id="btnAddProduct" type="button">${icon('plus')} Add Product</button>
+      </div>
+    </div>
+
+    <div class="filter-bar">
+      <div class="filter-fields">
+        <div class="field filter-field">
+          <label class="field-label" for="filterCategory">Category</label>
+          <div class="select-wrap">
+            <select class="control" id="filterCategory">
+              <option value="">All Categories</option>
+              ${CATEGORIES.map((c) => `<option value="${c.id}">${escHtml(c.name)}</option>`).join('')}
+            </select>
+            ${icon('chevron-down', 'chev')}
+          </div>
+        </div>
+        <div class="field filter-field">
+          <label class="field-label" for="filterBranch">Branch</label>
+          <div class="select-wrap">
+            <select class="control" id="filterBranch">
+              <option value="">All Branches</option>
+              ${BRANCHES.map((b) => `<option value="${b.id}">${escHtml(b.name)}</option>`).join('')}
+            </select>
+            ${icon('chevron-down', 'chev')}
+          </div>
+        </div>
+        <div class="field filter-field">
+          <label class="field-label" for="filterStockStatus">Stock Status</label>
+          <div class="select-wrap">
+            <select class="control" id="filterStockStatus">
+              <option value="">All</option>
+              <option value="in_stock">In Stock</option>
+              <option value="low_stock">Low Stock</option>
+              <option value="out_of_stock">Out of Stock</option>
+            </select>
+            ${icon('chevron-down', 'chev')}
+          </div>
+        </div>
+        <div class="field filter-field">
+          <label class="field-label" for="filterSupplier">Supplier</label>
+          <div class="select-wrap">
+            <select class="control" id="filterSupplier">
+              <option value="">All Suppliers</option>
+              ${SUPPLIERS.map((s) => `<option value="${s.id}">${escHtml(s.name)}</option>`).join('')}
+            </select>
+            ${icon('chevron-down', 'chev')}
+          </div>
+        </div>
+        <div class="field filter-scan">
+          <label class="field-label visually-hidden" for="filterBarcode">Scan / Enter Barcode</label>
+          <div class="input-icon-wrap">
+            ${icon('search', 'icon-leading')}
+            <input class="control has-trailing" id="filterBarcode" type="text" placeholder="Scan / Enter Barcode" autocomplete="off">
+            ${icon('barcode', 'icon-trailing')}
+          </div>
+        </div>
+      </div>
+      <div class="filter-actions">
+        <button class="btn btn-outline" type="button" data-toast="All filters are already shown in this demo.">${icon('filter')} Filters</button>
+        <button class="btn btn-dark" id="btnApplyFilters" type="button">Apply</button>
+        <button class="btn btn-outline" id="btnResetFilters" type="button">Reset</button>
+      </div>
+    </div>
+
+    <div class="kpi-grid" id="kpiGrid">
+      <div class="kpi-card">
+        <div class="kpi-card-head">${icon('inventory', 'kpi-icon tone-green')}<span class="kpi-label">Total Products</span></div>
+        <div class="kpi-value" id="kpiTotalProducts">0</div>
+        <div class="kpi-sub">Active SKUs</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-card-head">${icon('coins', 'kpi-icon tone-marigold')}<span class="kpi-label">Total Stock Value</span></div>
+        <div class="kpi-value" id="kpiStockValue">৳ 0.00</div>
+        <div class="kpi-sub">At selling price</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-card-head">${icon('alert-triangle', 'kpi-icon tone-red')}<span class="kpi-label">Low Stock Items</span></div>
+        <div class="kpi-value tone-red" id="kpiLowStock">0</div>
+        <div class="kpi-sub">Need attention</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-card-head">${icon('check-circle', 'kpi-icon tone-green')}<span class="kpi-label">In Stock Items</span></div>
+        <div class="kpi-value tone-green" id="kpiInStock">0</div>
+        <div class="kpi-sub">Good availability</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-card-head">${icon('barcode', 'kpi-icon tone-neutral')}<span class="kpi-label">Out of Stock Items</span></div>
+        <div class="kpi-value" id="kpiOutOfStock">0</div>
+        <div class="kpi-sub">No stock</div>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-scroll">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th class="col-checkbox"><input type="checkbox" class="checkbox" id="selectAll"></th>
+              <th><button class="th-sort" data-sort-key="sku">SKU ${icon('sort')}</button></th>
+              <th><button class="th-sort" data-sort-key="name">Product Name ${icon('sort')}</button></th>
+              <th><button class="th-sort" data-sort-key="category_name">Category ${icon('sort')}</button></th>
+              <th><button class="th-sort" data-sort-key="branch_name">Branch ${icon('sort')}</button></th>
+              <th class="col-qty"><button class="th-sort" data-sort-key="quantity">Qty ${icon('sort')}</button></th>
+              <th><button class="th-sort" data-sort-key="reorder_level">Reorder Level ${icon('sort')}</button></th>
+              <th class="col-unit"><button class="th-sort" data-sort-key="unit">Unit ${icon('sort')}</button></th>
+              <th><button class="th-sort" data-sort-key="cost_price">Cost Price (৳) ${icon('sort')}</button></th>
+              <th><button class="th-sort" data-sort-key="sale_price">Selling Price (৳) ${icon('sort')}</button></th>
+              <th>Stock Value (৳)</th>
+              <th><button class="th-sort" data-sort-key="status">Status ${icon('sort')}</button></th>
+              <th>Last Updated</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="productsTbody"></tbody>
+        </table>
+      </div>
+      <div class="table-pagination">
+        <div class="pagination-summary" id="paginationSummary"></div>
+        <div class="pagination-controls">
+          <div class="field per-page-select">
+            <div class="select-wrap">
+              <select class="control" id="perPageSelect">
+                <option value="10">10 per page</option>
+                <option value="25">25 per page</option>
+                <option value="50">50 per page</option>
+                <option value="100">100 per page</option>
+              </select>
+              ${icon('chevron-down', 'chev')}
+            </div>
+          </div>
+          <nav class="pager" id="pager" aria-label="Pagination"></nav>
+        </div>
+      </div>
+    </div>
+  `;
+
+  /* ============================================================
+     Query engine — filters + sorts + paginates the in-memory
+     PRODUCTS array the same way InventoryService/Product.php do
+     against real SQL.
+     ============================================================ */
+  const SORTABLE = ['sku', 'name', 'category_name', 'branch_name', 'quantity', 'reorder_level', 'unit', 'cost_price', 'sale_price', 'status'];
+  const STATUS_RANK = { out_of_stock: 0, low_stock: 1, in_stock: 2 };
+
+  function queryProducts() {
+    let rows = PRODUCTS.filter((p) => {
+      if (state.search) {
+        const q = state.search.toLowerCase();
+        if (!p.name.toLowerCase().includes(q) && !p.sku.toLowerCase().includes(q)) return false;
+      }
+      if (state.category_id && String(p.category_id) !== String(state.category_id)) return false;
+      if (state.branch_id && String(p.branch_id) !== String(state.branch_id)) return false;
+      if (state.supplier_id && String(p.supplier_id) !== String(state.supplier_id)) return false;
+      if (state.stock_status && p.status !== state.stock_status) return false;
+      return true;
+    });
+
+    const sortKey = SORTABLE.includes(state.sort) ? state.sort : null;
+    rows = rows.slice().sort((a, b) => {
+      let av, bv;
+      if (sortKey === 'status') { av = STATUS_RANK[a.status]; bv = STATUS_RANK[b.status]; }
+      else if (sortKey) { av = a[sortKey]; bv = b[sortKey]; }
+      else { av = a.id; bv = b.id; } // natural/insertion order default, same as the real app
+      if (typeof av === 'string') { av = av.toLowerCase(); bv = String(bv).toLowerCase(); }
+      let cmp = av < bv ? -1 : av > bv ? 1 : (a.id - b.id);
+      return (sortKey && state.dir === 'desc') ? -cmp : cmp;
+    });
+
+    const total = rows.length;
+    const start = (state.page - 1) * state.per_page;
+    return { rows: rows.slice(start, start + state.per_page), total };
+  }
+
+  function computeKpis() {
+    const distinctProducts = new Set(PRODUCTS.map((p) => p.id)).size;
+    let totalValue = 0, low = 0, inStock = 0, out = 0;
+    PRODUCTS.forEach((p) => {
+      totalValue += p.stock_value;
+      if (p.status === 'low_stock') low++;
+      else if (p.status === 'in_stock') inStock++;
+      else out++;
+    });
+    return { total_products: distinctProducts, total_stock_value: totalValue, low_stock_count: low, in_stock_count: inStock, out_of_stock_count: out };
+  }
+
+  /* ============================================================
+     Row + pagination rendering
+     ============================================================ */
+  function rowHtml(p) {
+    const badgeClass = STATUS_BADGE[p.status] || 'badge-neutral';
+    const qtyTone = QTY_TONE[p.status] || 'tone-green';
+    const updated = updatedParts(p.updated_at);
+    const qtyDecimals = Number(p.quantity) === Math.trunc(Number(p.quantity)) ? 0 : 2;
+
+    return `
+      <tr data-row-id="${p.id}" data-branch-id="${p.branch_id}">
+        <td class="col-checkbox"><input type="checkbox" class="checkbox row-check"></td>
+        <td class="cell-sku">${escHtml(p.sku)}</td>
+        <td class="cell-name">${escHtml(p.name)}</td>
+        <td class="cell-muted">${escHtml(p.category_name || '—')}</td>
+        <td class="cell-muted">${escHtml(p.branch_name || '—')}</td>
+        <td class="cell-qty ${qtyTone}">${num(p.quantity, qtyDecimals)}</td>
+        <td class="cell-num">${p.reorder_level}</td>
+        <td class="cell-muted">${escHtml(p.unit)}</td>
+        <td class="cell-num">${num(p.cost_price, 2)}</td>
+        <td class="cell-num">${num(p.sale_price, 2)}</td>
+        <td class="cell-num">${num(p.stock_value, 2)}</td>
+        <td><span class="badge ${badgeClass}">${STATUS_LABEL[p.status]}</span></td>
+        <td class="cell-updated"><span class="date">${escHtml(updated.date)}</span><span>${escHtml(updated.time)}</span></td>
+        <td class="cell-actions">
+          <button class="icon-btn bordered" type="button" data-action="view" data-id="${p.id}" aria-label="View">${icon('eye')}</button>
+          <button class="icon-btn bordered" type="button" data-action="edit" data-id="${p.id}" aria-label="Edit">${icon('pencil')}</button>
+          <div class="dropdown row-menu">
+            <button class="icon-btn" type="button" data-row-menu-toggle aria-label="More actions">${icon('more-vertical')}</button>
+            <div class="dropdown-panel row-menu-panel">
+              <button type="button" data-action="adjust" data-id="${p.id}" data-branch-id="${p.branch_id}">${icon('adjust')} Adjust stock</button>
+              <button type="button" class="is-danger" data-action="delete" data-id="${p.id}">${icon('close')} Delete</button>
+            </div>
+          </div>
+        </td>
+      </tr>`;
+  }
+
+  function renderRows(rows) {
+    const tbody = document.getElementById('productsTbody');
+    if (!rows.length) {
+      tbody.innerHTML = `<tr><td colspan="14"><div class="table-empty">${icon('inventory')}<span>No products match these filters.</span></div></td></tr>`;
+      return;
+    }
+    tbody.innerHTML = rows.map(rowHtml).join('');
+  }
+
+  function renderPagination(total) {
+    const totalPages = Math.max(1, Math.ceil(total / state.per_page));
+    const cur = state.page;
+
+    const from = total === 0 ? 0 : (cur - 1) * state.per_page + 1;
+    const to = Math.min(cur * state.per_page, total);
+    document.getElementById('paginationSummary').innerHTML =
+      `Showing <strong>${from}</strong> to <strong>${to}</strong> of <strong>${total.toLocaleString('en-US')}</strong> entries`;
+
+    const pages = [];
+    const add = (p) => { if (!pages.includes(p)) pages.push(p); };
+    add(1); add(totalPages);
+    for (let p = cur - 1; p <= cur + 1; p++) if (p >= 1 && p <= totalPages) add(p);
+    const sorted = pages.sort((a, b) => a - b);
+
+    let html = `<button data-page="prev" ${cur <= 1 ? 'disabled' : ''} aria-label="Previous page">${icon('chevron-left')}</button>`;
+    let prev = 0;
+    sorted.forEach((p) => {
+      if (p - prev > 1) html += `<span class="ellipsis">&hellip;</span>`;
+      html += `<button data-page="${p}" class="${p === cur ? 'is-active' : ''}">${p}</button>`;
+      prev = p;
+    });
+    html += `<button data-page="next" ${cur >= totalPages ? 'disabled' : ''} aria-label="Next page">${icon('chevron-right')}</button>`;
+    document.getElementById('pager').innerHTML = html;
+  }
+
+  function updateSortIndicators() {
+    document.querySelectorAll('.th-sort').forEach((btn) => btn.classList.toggle('is-active', btn.dataset.sortKey === state.sort));
+  }
+
+  function refresh() {
+    const { rows, total } = queryProducts();
+    renderRows(rows);
+    renderPagination(total);
+    updateSortIndicators();
+  }
+
+  function refreshKpis() {
+    const k = computeKpis();
+    document.getElementById('kpiTotalProducts').textContent = k.total_products.toLocaleString('en-US');
+    document.getElementById('kpiStockValue').textContent = money(k.total_stock_value);
+    document.getElementById('kpiLowStock').textContent = k.low_stock_count.toLocaleString('en-US');
+    document.getElementById('kpiInStock').textContent = k.in_stock_count.toLocaleString('en-US');
+    document.getElementById('kpiOutOfStock').textContent = k.out_of_stock_count.toLocaleString('en-US');
+  }
+
+  /* ============================================================
+     Sorting
+     ============================================================ */
+  document.querySelectorAll('.th-sort').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const key = btn.dataset.sortKey;
+      if (state.sort === key) state.dir = state.dir === 'asc' ? 'desc' : 'asc';
+      else { state.sort = key; state.dir = 'asc'; }
+      state.page = 1;
+      refresh();
+    });
+  });
+
+  /* ============================================================
+     Filters
+     ============================================================ */
+  const filterCategory = document.getElementById('filterCategory');
+  const filterBranch = document.getElementById('filterBranch');
+  const filterStockStatus = document.getElementById('filterStockStatus');
+  const filterSupplier = document.getElementById('filterSupplier');
+  const filterBarcode = document.getElementById('filterBarcode');
+  const globalSearch = document.getElementById('globalSearch');
+
+  function applyFiltersFromForm() {
+    state.category_id = filterCategory.value;
+    state.branch_id = filterBranch.value;
+    state.stock_status = filterStockStatus.value;
+    state.supplier_id = filterSupplier.value;
+    state.search = filterBarcode.value.trim() || globalSearch.value.trim();
+    state.page = 1;
+    refresh();
+    refreshKpis();
+  }
+  document.getElementById('btnApplyFilters').addEventListener('click', applyFiltersFromForm);
+  document.getElementById('btnResetFilters').addEventListener('click', () => {
+    filterCategory.value = filterBranch.value = filterStockStatus.value = filterSupplier.value = filterBarcode.value = globalSearch.value = '';
+    state.category_id = state.branch_id = state.stock_status = state.supplier_id = state.search = '';
+    state.page = 1;
+    refresh();
+    refreshKpis();
+  });
+  filterBarcode.addEventListener('keydown', (e) => { if (e.key === 'Enter') applyFiltersFromForm(); });
+  globalSearch.addEventListener('keydown', (e) => { if (e.key === 'Enter') applyFiltersFromForm(); });
+  [filterCategory, filterBranch, filterStockStatus, filterSupplier].forEach((el) => el.addEventListener('change', applyFiltersFromForm));
+  document.addEventListener('keydown', (e) => { if (e.key === 'F2') { e.preventDefault(); globalSearch.focus(); } });
+
+  document.getElementById('perPageSelect').addEventListener('change', (e) => {
+    state.per_page = parseInt(e.target.value, 10);
+    state.page = 1;
+    refresh();
+  });
+
+  document.getElementById('exportCsvBtn').addEventListener('click', () => {
+    const { rows } = (() => { const saved = state.per_page; state.per_page = 100000; const r = queryProducts(); state.per_page = saved; return r; })();
+    const cols = ['sku', 'name', 'category_name', 'branch_name', 'quantity', 'reorder_level', 'unit', 'cost_price', 'sale_price', 'stock_value', 'status'];
+    const lines = [cols.join(',')].concat(rows.map((p) => cols.map((c) => `"${String(p[c] ?? '').replace(/"/g, '""')}"`).join(',')));
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'inventory-export.csv';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    showToast('Exported ' + rows.length + ' rows to CSV', 'success');
+  });
+
+  document.querySelector('.table-pagination').addEventListener('click', (evt) => {
+    const btn = evt.target.closest('button[data-page]');
+    if (!btn || btn.disabled) return;
+    const totalPages = Math.max(1, Math.ceil(queryProducts().total / state.per_page));
+    const val = btn.getAttribute('data-page');
+    if (val === 'prev') state.page = Math.max(1, state.page - 1);
+    else if (val === 'next') state.page = Math.min(totalPages, state.page + 1);
+    else state.page = parseInt(val, 10);
+    refresh();
+  });
+
+  /* ============================================================
+     Row actions
+     ============================================================ */
+  document.getElementById('productsTbody').addEventListener('click', (evt) => {
+    const btn = evt.target.closest('button[data-action]');
+    if (!btn) return;
+    const action = btn.getAttribute('data-action');
+    const id = btn.getAttribute('data-id');
+    const branchId = btn.getAttribute('data-branch-id');
+    if (action === 'view' || action === 'edit') {
+      showToast("Demo only — this action isn't wired up here.");
+    } else if (action === 'adjust') {
+      openAdjustModal(id, branchId);
+    } else if (action === 'delete') {
+      showToast("Demo only — delete isn't wired up here.");
+    }
+  });
+
+  /* ============================================================
+     Modals — shared open/close plumbing
+     ============================================================ */
+  function openModal(el) { el.classList.add('is-open'); document.body.style.overflow = 'hidden'; }
+  function closeModal(el) { el.classList.remove('is-open'); document.body.style.overflow = ''; }
+  document.querySelectorAll('.modal-overlay').forEach((overlay) => {
+    overlay.addEventListener('click', (evt) => {
+      if (evt.target === overlay || evt.target.closest('[data-close-modal]')) closeModal(overlay);
+    });
+  });
+  document.addEventListener('keydown', (evt) => {
+    if (evt.key === 'Escape') document.querySelectorAll('.modal-overlay.is-open').forEach(closeModal);
+  });
+  function clearErrors(form) {
+    form.querySelectorAll('.field-error').forEach((el) => (el.textContent = ''));
+    form.querySelectorAll('.has-error').forEach((el) => el.classList.remove('has-error'));
+  }
+
+  /* ---- Add Product ---- */
+  const addProductModal = document.getElementById('addProductModal');
+  const addProductForm = document.getElementById('addProductForm');
+  document.getElementById('btnAddProduct').addEventListener('click', () => {
+    addProductForm.reset();
+    clearErrors(addProductForm);
+    openModal(addProductModal);
+  });
+  addProductForm.addEventListener('submit', (evt) => {
+    evt.preventDefault();
+    clearErrors(addProductForm);
+    const fd = new FormData(addProductForm);
+    const v = Object.fromEntries(fd.entries());
+
+    const errors = {};
+    if (!v.sku || !v.sku.trim()) errors.sku = 'SKU is required.';
+    else if (PRODUCTS.some((p) => p.sku.toLowerCase() === v.sku.trim().toLowerCase())) errors.sku = 'This SKU already exists.';
+    if (!v.name || !v.name.trim()) errors.name = 'Product name is required.';
+    if (!v.sale_price || Number(v.sale_price) < 0) errors.sale_price = 'Enter a valid selling price.';
+    if (Object.keys(errors).length) {
+      Object.entries(errors).forEach(([field, msg]) => {
+        const err = addProductForm.querySelector(`[data-error-for="${field}"]`);
+        if (err) err.textContent = msg;
+        const input = addProductForm.querySelector(`[name="${field}"]`);
+        if (input) input.classList.add('has-error');
+      });
+      return;
+    }
+
+    const branch = BRANCHES.find((b) => String(b.id) === String(v.branch_id)) || BRANCHES[0];
+    const category = CATEGORIES.find((c) => String(c.id) === String(v.category_id));
+    const supplier = SUPPLIERS.find((s) => String(s.id) === String(v.default_supplier_id));
+    const qty = Number(v.opening_qty || 0);
+    const reorderLevel = Number(v.reorder_level || 0);
+
+    const newProduct = {
+      id: nextProductId++,
+      sku: v.sku.trim(), name: v.name.trim(),
+      category_id: category ? category.id : null, category_name: category ? category.name : null,
+      branch_id: branch.id, branch_name: branch.name,
+      unit: v.unit || 'Pcs', quantity: qty, reorder_level: reorderLevel,
+      cost_price: Number(v.cost_price || 0), sale_price: Number(v.sale_price),
+      stock_value: qty * Number(v.sale_price),
+      status: statusFor(qty, reorderLevel),
+      supplier_id: supplier ? supplier.id : null, supplier_name: supplier ? supplier.name : null,
+      updated_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
+    };
+    PRODUCTS.unshift(newProduct);
+
+    closeModal(addProductModal);
+    showToast('Product added.', 'success');
+    state.page = 1;
+    refresh();
+    refreshKpis();
+  });
+
+  /* ---- Adjust Stock ---- */
+  const adjustStockModal = document.getElementById('adjustStockModal');
+  const adjustStockForm = document.getElementById('adjustStockForm');
+  const asProduct = document.getElementById('asProduct');
+  const asBranch = document.getElementById('asBranch');
+  const asCurrentQty = document.getElementById('asCurrentQty');
+
+  function populateProductSelect(selectedId) {
+    asProduct.innerHTML = '<option value="">Select...</option>' + PRODUCTS
+      .slice().sort((a, b) => a.sku.localeCompare(b.sku))
+      .map((p) => `<option value="${p.id}" data-branch-id="${p.branch_id}">${escHtml(p.sku)} — ${escHtml(p.name)} (${escHtml(p.branch_name)})</option>`)
+      .join('');
+    if (selectedId) asProduct.value = selectedId;
+  }
+  function findProduct(id, branchId) {
+    return PRODUCTS.find((p) => String(p.id) === String(id) && (branchId == null || String(p.branch_id) === String(branchId)));
+  }
+  function refreshCurrentQty() {
+    const opt = asProduct.selectedOptions[0];
+    if (!opt || !opt.value) { asCurrentQty.value = '—'; return; }
+    const branchId = opt.getAttribute('data-branch-id');
+    if (branchId) asBranch.value = branchId;
+    const p = findProduct(opt.value, branchId);
+    asCurrentQty.value = p ? num(p.quantity, Number(p.quantity) === Math.trunc(p.quantity) ? 0 : 2) : '—';
+  }
+  asProduct.addEventListener('change', refreshCurrentQty);
+  asBranch.addEventListener('change', refreshCurrentQty);
+
+  function openAdjustModal(productId, branchId) {
+    populateProductSelect(productId);
+    if (branchId) asBranch.value = branchId;
+    refreshCurrentQty();
+    clearErrors(adjustStockForm);
+    openModal(adjustStockModal);
+  }
+  document.getElementById('btnAdjustStock').addEventListener('click', () => openAdjustModal());
+
+  adjustStockForm.addEventListener('submit', (evt) => {
+    evt.preventDefault();
+    clearErrors(adjustStockForm);
+    const fd = new FormData(adjustStockForm);
+    const v = Object.fromEntries(fd.entries());
+
+    const errors = {};
+    if (!v.product_id) errors.quantity_change = 'Choose a product.';
+    const change = Number(v.quantity_change);
+    if (!v.quantity_change || isNaN(change) || change === 0) errors.quantity_change = 'Enter a non-zero quantity change.';
+    if (Object.keys(errors).length) {
+      Object.entries(errors).forEach(([field, msg]) => {
+        const err = adjustStockForm.querySelector(`[data-error-for="${field}"]`);
+        if (err) err.textContent = msg;
+      });
+      return;
+    }
+
+    const p = findProduct(v.product_id, v.branch_id) || findProduct(v.product_id);
+    const before = p.quantity;
+    const after = Math.max(0, before + change);
+    p.quantity = after;
+    p.stock_value = after * p.sale_price;
+    p.status = statusFor(after, p.reorder_level);
+    p.updated_at = new Date().toISOString().slice(0, 19).replace('T', ' ');
+
+    closeModal(adjustStockModal);
+    showToast(`Stock updated: ${num(before, 0)} \u2192 ${num(after, 0)}`, 'success');
+    refresh();
+    refreshKpis();
+  });
+
+  /* ============================================================
+     Boot
+     ============================================================ */
+  refresh();
+  refreshKpis();
+})();
+
+</script>
+</body>
+</html>
