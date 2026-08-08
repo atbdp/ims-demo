@@ -1,0 +1,2438 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dashboard · ArchTech IMS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ===== tokens.css ===== */
+/* ==========================================================================
+   ArchTech IMS — Design Tokens
+   Source of truth for color / type / shape across every screen.
+   Core six tokens are LOCKED per archtech-ims-design-prompts.md — do not
+   rename or re-hex them without updating that doc first.
+   ========================================================================== */
+
+:root {
+  /* ---- Core brand tokens (locked) ---- */
+  --deep-teal:      #0E3B36;
+  --marigold:        #E8A33D;
+  --off-white:       #F7F5F0;
+  --charcoal-ink:    #1E2422;
+  --alert-red:       #C1483B;
+  --soft-sage:       #B9CDB0;
+
+  /* ---- Derived tints/shades of the core tokens (not new hues) ---- */
+  --deep-teal-600:   #124A43;   /* hover state on teal surfaces */
+  --deep-teal-700:   #0A2B27;   /* pressed / darkest teal */
+  --deep-teal-tint-10: #E7EEEC; /* teal at ~10% on off-white, for subtle fills */
+  --marigold-600:    #D08F2E;   /* hover state on marigold buttons */
+  --marigold-deep:   #C9852E;   /* higher-contrast amber for icon fills */
+  --sage-tint:       #EDF2EA;   /* pulse strip background, hairline fills */
+  --sage-line:       #D8E3D3;   /* card borders / dividers */
+  --alert-red-tint:  #FBEAE8;   /* low-stock / error surface fill */
+  --success-green:   #2F9461;   /* positive trend, in-stock, completed badge text */
+  --success-tint:    #E7F4EC;   /* completed badge background */
+
+  /* ---- Extended accent tokens (proposal — for KPI icon variety only;
+     the 6 core tokens don't cover blue/purple/teal icon fills seen in the
+     approved dashboard mockup. Flagged at the end of the build notes for
+     confirmation into the shared design system doc.) ---- */
+  --accent-blue:     #3E6FA8;
+  --accent-blue-tint:#E8EEF5;
+  --accent-purple:   #7C5FA0;
+  --accent-purple-tint: #F0EBF5;
+  --accent-teal:     #1F6E64;
+  --accent-teal-tint:#E5F0EE;
+
+  /* ---- Typography ----
+     Display: Sora (headers, KPI numbers, bold, used sparingly)
+     Body/UI: Inter, falls back to IBM Plex Sans, then system UI
+     Data/tabular: IBM Plex Mono (SKUs, invoice #, amounts)
+     Bangla: Noto Sans Bengali, paired in wherever Bangla labels render */
+  --font-display: 'Sora', 'General Sans', -apple-system, sans-serif;
+  --font-body:    'Inter', 'IBM Plex Sans', 'Noto Sans Bengali', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono:    'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-bengali: 'Noto Sans Bengali', 'Inter', sans-serif;
+
+  --fs-xs:   0.75rem;    /* 12px — micro labels, table meta */
+  --fs-sm:   0.8125rem;  /* 13px — table body, secondary text */
+  --fs-base: 0.9375rem;  /* 15px — body */
+  --fs-md:   1rem;       /* 16px */
+  --fs-lg:   1.125rem;   /* 18px — card titles */
+  --fs-xl:   1.5rem;     /* 24px — page title */
+  --fs-2xl:  1.75rem;    /* 28px — KPI numbers */
+
+  /* ---- Shape ---- */
+  --radius-sm: 6px;
+  --radius:    8px;   /* locked default per brief */
+  --radius-lg: 12px;
+  --radius-pill: 999px;
+
+  /* ---- Spacing scale (4px base) ---- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+
+  /* ---- Elevation — brief calls for hairline borders over heavy shadows;
+     these are reserved for genuinely floating layers (menus/popovers) ---- */
+  --shadow-float: 0 4px 16px rgba(14, 59, 54, 0.12);
+  --shadow-card: 0 1px 2px rgba(30, 36, 34, 0.04);
+
+  --sidebar-w-expanded: 220px;
+  --sidebar-w-collapsed: 72px;
+  --topbar-h: 64px;
+  --pulse-h: 38px;
+
+  --transition-fast: 140ms ease;
+  --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ---- Dark theme (secondary — toggled via the sidebar "Light/Dark" control).
+   The reference screen is the light theme; dark redefines the same token
+   names so every component adapts with zero component-level changes. ---- */
+[data-theme='dark'] {
+  --off-white:    #0F1715;
+  --charcoal-ink: #EAF0EC;
+  --sage-tint:    #12211C;
+  --sage-line:    #23352E;
+  --deep-teal-tint-10: #16231F;
+  --alert-red-tint: #3A1C19;
+  --success-tint: #12291D;
+  --accent-blue-tint: #172436;
+  --accent-purple-tint: #241C30;
+  --accent-teal-tint: #12241F;
+}
+
+/* ===== app.css ===== */
+/* ==========================================================================
+   ArchTech IMS — app.css
+   Shared shell + component styles. Page-specific layout (e.g. the KPI grid)
+   lives in that page's own stylesheet (see dashboard.css) — keep this file
+   reusable across every screen.
+   ========================================================================== */
+
+/* ---------------------------- Reset / base ---------------------------- */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--off-white);
+  color: var(--charcoal-ink);
+  font-family: var(--font-body);
+  font-size: var(--fs-base);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+img, svg { display: block; max-width: 100%; }
+button, input { font-family: inherit; font-size: inherit; color: inherit; }
+button { cursor: pointer; background: none; border: none; padding: 0; }
+a { color: inherit; text-decoration: none; }
+ul { list-style: none; margin: 0; padding: 0; }
+h1, h2, h3, p { margin: 0; }
+table { border-collapse: collapse; width: 100%; }
+
+:focus-visible {
+  outline: 2px solid var(--deep-teal);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+[data-theme='dark'] :focus-visible { outline-color: var(--marigold); }
+
+/* Bangla text needs the Bengali face stacked in; English content skips it
+   automatically since the font falls through to Inter for latin glyphs. */
+:lang(bn) { font-family: var(--font-bengali); }
+
+/* ------------------------------ Shell ------------------------------ */
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---- Pulse strip — signature live-status element, present on every screen ---- */
+.pulse-strip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-5);
+  height: var(--pulse-h);
+  background: var(--sage-tint);
+  border-bottom: 1px solid var(--sage-line);
+  font-size: var(--fs-xs);
+  color: var(--charcoal-ink);
+  white-space: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.pulse-strip::-webkit-scrollbar { display: none; }
+.pulse-item { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.pulse-item--branch strong { color: var(--marigold-600); font-weight: 600; }
+.pulse-icon { color: var(--success-green); flex-shrink: 0; }
+.pulse-sep { width: 1px; height: 14px; background: var(--sage-line); flex-shrink: 0; }
+.pulse-sep--push { margin-left: auto; }
+.pulse-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--success-green);
+  box-shadow: 0 0 0 0 rgba(47, 148, 97, 0.5);
+  animation: pulse-glow 2.2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+.pulse-dot[data-state='offline'] { background: var(--alert-red); animation: none; }
+.pulse-dot[data-state='syncing'] { background: var(--marigold); }
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(47, 148, 97, 0.45); }
+  50% { box-shadow: 0 0 0 4px rgba(47, 148, 97, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pulse-dot { animation: none; }
+}
+
+.app-body { flex: 1; display: flex; min-height: 0; }
+
+/* -------------------------------- Sidebar -------------------------------- */
+.sidebar {
+  width: var(--sidebar-w-expanded);
+  flex-shrink: 0;
+  background: var(--deep-teal);
+  color: var(--off-white);
+  display: flex;
+  flex-direction: column;
+  transition: width var(--transition-base);
+  overflow: hidden;
+}
+.sidebar-brand { padding: var(--space-5) var(--space-4) var(--space-4); }
+.brand-mark { display: flex; align-items: center; gap: var(--space-3); }
+.brand-icon {
+  width: 40px; height: 40px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--marigold);
+  color: var(--deep-teal-700);
+  border-radius: var(--radius);
+}
+.brand-text { display: flex; flex-direction: column; min-width: 0; }
+.brand-name { font-family: var(--font-display); font-weight: 700; font-size: 1.05rem; letter-spacing: 0.01em; white-space: nowrap; }
+.brand-tagline { font-size: 0.6875rem; color: rgba(247, 245, 240, 0.6); white-space: nowrap; }
+
+.sidebar-nav { flex: 1; overflow-y: auto; padding: var(--space-2) var(--space-3) var(--space-4); }
+.nav-list { display: flex; flex-direction: column; gap: 2px; }
+.nav-link, .nav-parent {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%;
+  padding: 9px var(--space-3);
+  border-radius: var(--radius-sm);
+  color: rgba(247, 245, 240, 0.78);
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.nav-icon { flex-shrink: 0; }
+.nav-link:hover, .nav-parent:hover { background: rgba(247, 245, 240, 0.08); color: var(--off-white); }
+.nav-item.is-active > .nav-link {
+  background: var(--marigold);
+  color: var(--deep-teal-700);
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 0 rgba(30, 36, 34, 0.18);
+}
+.nav-label { flex: 1; overflow: hidden; text-overflow: ellipsis; text-align: left; }
+.nav-caret { flex-shrink: 0; transition: transform var(--transition-fast); color: rgba(247, 245, 240, 0.5); }
+.nav-group.is-open .nav-caret { transform: rotate(180deg); }
+.nav-group.is-active > .nav-parent { color: var(--marigold); }
+.nav-sub {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height var(--transition-base);
+  padding-left: 33px;
+}
+.nav-group.is-open .nav-sub { max-height: 260px; }
+.nav-sub-link {
+  display: block;
+  padding: 7px var(--space-3);
+  font-size: 0.8125rem;
+  color: rgba(247, 245, 240, 0.62);
+  border-radius: var(--radius-sm);
+}
+.nav-sub-link:hover { color: var(--off-white); background: rgba(247, 245, 240, 0.06); }
+
+.sidebar-footer {
+  padding: var(--space-4);
+  border-top: 1px solid rgba(247, 245, 240, 0.1);
+}
+.sidebar-copyright { margin: 0 0 var(--space-3); font-size: 0.6875rem; line-height: 1.5; color: rgba(247, 245, 240, 0.45); white-space: nowrap; }
+.theme-toggle {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%;
+  padding: 8px var(--space-3);
+  border-radius: var(--radius-pill);
+  background: rgba(247, 245, 240, 0.08);
+  color: var(--off-white);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.theme-toggle:hover { background: rgba(247, 245, 240, 0.14); }
+
+/* Collapsed sidebar (toggled via hamburger) */
+.sidebar.is-collapsed { width: var(--sidebar-w-collapsed); }
+.sidebar.is-collapsed .brand-text,
+.sidebar.is-collapsed .nav-label,
+.sidebar.is-collapsed .nav-caret,
+.sidebar.is-collapsed .nav-sub,
+.sidebar.is-collapsed .sidebar-copyright,
+.sidebar.is-collapsed .theme-toggle-label,
+.sidebar.is-collapsed #themeToggleLabel { display: none; }
+.sidebar.is-collapsed .nav-link,
+.sidebar.is-collapsed .nav-parent { justify-content: center; padding: 9px; }
+.sidebar.is-collapsed .theme-toggle { justify-content: center; }
+.sidebar.is-collapsed .sidebar-brand { display: flex; justify-content: center; padding: var(--space-5) 0 var(--space-4); }
+.sidebar.is-collapsed .brand-mark { gap: 0; }
+
+.sidebar-backdrop { display: none; }
+
+/* -------------------------------- Top bar -------------------------------- */
+.main-col { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+.topbar {
+  height: var(--topbar-h);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: 0 var(--space-6);
+  background: #FFFFFF;
+  border-bottom: 1px solid var(--sage-line);
+}
+[data-theme='dark'] .topbar { background: var(--deep-teal-700); }
+
+.icon-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px;
+  border-radius: var(--radius-sm);
+  color: var(--charcoal-ink);
+  flex-shrink: 0;
+  position: relative;
+}
+.icon-btn:hover { background: var(--sage-tint); }
+
+.search-box {
+  flex: 1;
+  max-width: 480px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 40px;
+  padding: 0 var(--space-3);
+  background: var(--off-white);
+  border: 1px solid var(--sage-line);
+  border-radius: var(--radius);
+  color: var(--charcoal-ink);
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+.search-box:focus-within { border-color: var(--deep-teal); background: #fff; }
+.search-icon { color: #8A968F; flex-shrink: 0; }
+.search-box input {
+  flex: 1; min-width: 0; border: none; background: none; outline: none;
+  font-size: 0.875rem; color: var(--charcoal-ink);
+}
+.search-box input::placeholder { color: #9AA69E; }
+.kbd-hint {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--sage-tint);
+  color: #5C6B62;
+  border: 1px solid var(--sage-line);
+  flex-shrink: 0;
+}
+
+.topbar-right { display: flex; align-items: center; gap: var(--space-3); flex-shrink: 0; }
+
+.pill-btn {
+  display: flex; align-items: center; gap: 8px;
+  height: 38px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--sage-line);
+  border-radius: var(--radius-pill);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--charcoal-ink);
+  white-space: nowrap;
+}
+.pill-btn:hover { background: var(--sage-tint); }
+
+.lang-toggle {
+  display: flex; align-items: center;
+  background: var(--sage-tint);
+  border-radius: var(--radius-pill);
+  padding: 3px;
+  gap: 2px;
+}
+.lang-opt {
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #5C6B62;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.lang-opt.is-active { background: var(--deep-teal); color: var(--off-white); }
+.lang-opt:not(.is-active):hover { color: var(--charcoal-ink); }
+
+.notif-badge {
+  position: absolute;
+  top: 6px; right: 6px;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--alert-red);
+  border: 1.5px solid #fff;
+}
+
+.profile-btn { display: flex; align-items: center; gap: 10px; padding: 4px 6px 4px 4px; border-radius: var(--radius-pill); }
+.profile-btn:hover { background: var(--sage-tint); }
+.avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--accent-teal);
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.profile-text { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.25; }
+.profile-name { font-size: 0.8125rem; font-weight: 600; white-space: nowrap; }
+.profile-role { font-size: 0.6875rem; color: #6B7A70; white-space: nowrap; }
+
+/* ---- Dropdown menus (branch / notifications / profile) ---- */
+.dropdown { position: relative; }
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 200px;
+  background: #fff;
+  border: 1px solid var(--sage-line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-float);
+  padding: 6px;
+  z-index: 60;
+  animation: menu-in 140ms ease;
+}
+[data-theme='dark'] .dropdown-menu { background: var(--deep-teal-600); }
+@keyframes menu-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+.branch-dropdown .dropdown-menu { left: 0; right: auto; min-width: 100%; }
+.dropdown-menu li a, .dropdown-menu .dropdown-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 9px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 0.8125rem;
+  color: var(--charcoal-ink);
+}
+.dropdown-menu li a:hover, .dropdown-menu .dropdown-row:hover { background: var(--sage-tint); }
+.dropdown-menu--wide { min-width: 300px; }
+.notif-item { display: flex; gap: 10px; padding: 10px; border-radius: var(--radius-sm); align-items: flex-start; }
+.notif-item:hover { background: var(--sage-tint); }
+.notif-item__icon {
+  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--accent-blue-tint); color: var(--accent-blue);
+}
+.notif-item__title { font-size: 0.8125rem; font-weight: 600; margin: 0 0 2px; }
+.notif-item__meta { font-size: 0.75rem; color: #6B7A70; margin: 0; }
+.notif-empty { padding: var(--space-5) var(--space-3); text-align: center; font-size: 0.8125rem; color: #6B7A70; }
+.dropdown-divider { height: 1px; background: var(--sage-line); margin: 6px 2px; }
+
+/* -------------------------------- Main canvas -------------------------------- */
+.main-canvas {
+  flex: 1;
+  padding: var(--space-6);
+  max-width: 1680px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* -------------------------------- Buttons -------------------------------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  height: 40px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+  border: 1px solid transparent;
+}
+.btn:active { transform: translateY(1px); }
+.btn-primary { background: var(--marigold); color: var(--deep-teal-700); }
+.btn-primary:hover { background: var(--marigold-600); }
+.btn-outline { background: #fff; border-color: var(--sage-line); color: var(--charcoal-ink); }
+.btn-outline:hover { background: var(--sage-tint); border-color: var(--soft-sage); }
+[data-theme='dark'] .btn-outline { background: var(--deep-teal-600); }
+
+/* -------------------------------- Cards -------------------------------- */
+.card {
+  background: #fff;
+  border: 1px solid var(--sage-line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+[data-theme='dark'] .card { background: var(--deep-teal-600); border-color: rgba(185, 205, 176, 0.16); }
+.card-header {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-3);
+  padding: var(--space-4) var(--space-5) var(--space-3);
+}
+.card-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--charcoal-ink);
+}
+.card-link {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--marigold-600);
+  display: inline-flex; align-items: center; gap: 4px;
+  flex-shrink: 0;
+}
+.card-link:hover { text-decoration: underline; }
+
+/* -------------------------------- Tables -------------------------------- */
+.data-table { font-size: var(--fs-sm); }
+.data-table th {
+  text-align: left;
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+  color: #6B7A70;
+  padding: 8px var(--space-5);
+  border-bottom: 1px solid var(--sage-line);
+  white-space: nowrap;
+}
+.data-table td {
+  padding: 11px var(--space-5);
+  border-bottom: 1px solid var(--sage-line);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.data-table tbody tr:last-child td { border-bottom: none; }
+.data-table tbody tr { transition: background var(--transition-fast); }
+.data-table tbody tr:hover { background: var(--sage-tint); }
+.data-table .num, .mono { font-family: var(--font-mono); }
+.data-table .col-fluid { white-space: normal; }
+
+.type-icon {
+  width: 30px; height: 30px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.type-icon--sale { background: var(--success-tint); color: var(--success-green); }
+.type-icon--return { background: var(--accent-purple-tint); color: var(--accent-purple); }
+
+/* -------------------------------- Badges -------------------------------- */
+.badge {
+  display: inline-flex; align-items: center;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.badge-success { background: var(--success-tint); color: var(--success-green); }
+.badge-returned { background: var(--accent-purple-tint); color: var(--accent-purple); }
+.badge-due { background: #FCEFDD; color: var(--marigold-deep); }
+
+.table-empty, .table-error {
+  padding: var(--space-7) var(--space-4);
+  text-align: center;
+  color: #6B7A70;
+  font-size: 0.8125rem;
+}
+.table-error { color: var(--alert-red); }
+.table-error button { margin-top: var(--space-2); }
+
+/* -------------------------------- Skeleton loading -------------------------------- */
+.skel {
+  position: relative;
+  overflow: hidden;
+  background: var(--sage-tint);
+  border-radius: var(--radius-sm);
+  color: transparent !important;
+}
+.skel::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent);
+  animation: skel-sweep 1.3s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) { .skel::after { animation: none; } }
+@keyframes skel-sweep { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+
+/* -------------------------------- Footer -------------------------------- */
+.app-footer {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-2);
+  padding: var(--space-4) var(--space-6);
+  font-size: 0.75rem;
+  color: #6B7A70;
+  border-top: 1px solid var(--sage-line);
+}
+.app-footer__right { display: flex; align-items: center; gap: var(--space-3); }
+.footer-link { display: inline-flex; align-items: center; gap: 5px; color: #6B7A70; }
+.footer-link:hover { color: var(--charcoal-ink); }
+.footer-divider { color: var(--sage-line); }
+
+/* -------------------------------- Toast (preview-safe, no alerts) -------------------------------- */
+.toast {
+  position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(12px);
+  background: var(--deep-teal-700); color: var(--off-white);
+  padding: 11px 18px; border-radius: var(--radius);
+  font-size: 0.8125rem; font-weight: 500;
+  box-shadow: var(--shadow-float);
+  z-index: 200;
+  opacity: 0; pointer-events: none;
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+.toast.is-visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ============================== Responsive ============================== */
+@media (max-width: 1200px) {
+  .search-box { max-width: 320px; }
+}
+
+@media (max-width: 1024px) {
+  .sidebar { position: fixed; inset: var(--pulse-h) 0 0 auto; left: 0; z-index: 100; height: calc(100vh - var(--pulse-h)); transform: translateX(-100%); transition: transform var(--transition-base); width: var(--sidebar-w-expanded); }
+  .sidebar.is-mobile-open { transform: translateX(0); box-shadow: var(--shadow-float); }
+  .sidebar.is-collapsed { width: var(--sidebar-w-expanded); }
+  .sidebar.is-collapsed .brand-text, .sidebar.is-collapsed .nav-label, .sidebar.is-collapsed .nav-caret,
+  .sidebar.is-collapsed .sidebar-copyright, .sidebar.is-collapsed #themeToggleLabel { display: revert; }
+  .sidebar.is-collapsed .nav-link, .sidebar.is-collapsed .nav-parent { justify-content: flex-start; padding: 9px var(--space-3); }
+  .sidebar-backdrop.is-visible { display: block; position: fixed; inset: 0; background: rgba(14, 20, 18, 0.45); z-index: 90; }
+  .profile-text { display: none; }
+}
+
+@media (max-width: 768px) {
+  .topbar { padding: 0 var(--space-4); gap: var(--space-2); }
+  .main-canvas { padding: var(--space-4); }
+  .app-footer { padding: var(--space-4); flex-direction: column; align-items: flex-start; }
+  .branch-dropdown .pill-btn span:first-child { max-width: 90px; overflow: hidden; text-overflow: ellipsis; }
+}
+
+@media (max-width: 560px) {
+  .search-box { display: none; }
+  .lang-toggle .lang-opt { padding: 6px 9px; }
+}
+
+/* ===== dashboard.css ===== */
+/* ==========================================================================
+   ArchTech IMS — dashboard.css (views/dashboard/index.php companion)
+   ========================================================================== */
+
+/* ---- Icon fill variants — shared across KPI icons / quick-action icons ---- */
+.fill-green  { background: var(--success-green); }
+.fill-blue   { background: var(--accent-blue); }
+.fill-red    { background: var(--alert-red); }
+.fill-purple { background: var(--accent-purple); }
+.fill-amber  { background: var(--marigold-deep); }
+.fill-teal   { background: var(--accent-teal); }
+
+/* -------------------------------- Page header -------------------------------- */
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-5);
+}
+.page-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--fs-xl);
+  color: var(--charcoal-ink);
+  letter-spacing: -0.01em;
+}
+.page-subtitle { margin-top: 4px; color: #5C6B62; font-size: 0.875rem; }
+
+/* -------------------------------- KPI grid -------------------------------- */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+.kpi-card {
+  background: #fff;
+  border: 1px solid var(--sage-line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.kpi-icon {
+  width: 42px; height: 42px;
+  border-radius: var(--radius);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+}
+.kpi-label { font-size: 0.75rem; font-weight: 600; color: #5C6B62; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kpi-value {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--fs-2xl);
+  color: var(--charcoal-ink);
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.kpi-value .cur { font-size: 0.62em; font-weight: 600; color: #7C8981; margin-right: 3px; }
+.kpi-trend { display: flex; align-items: center; gap: 5px; font-size: 0.75rem; font-weight: 600; }
+.kpi-trend svg { flex-shrink: 0; }
+.kpi-trend span.trend-note { font-weight: 500; color: #7C8981; }
+.kpi-trend--up { color: var(--success-green); }
+.kpi-trend--bad { color: var(--alert-red); }
+.kpi-trend--alert { color: var(--alert-red); }
+.kpi-trend--alert a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+
+/* -------------------------------- Main content grid --------------------------------
+   3 columns: chart | recent transactions | right rail (low-stock + top-selling)
+   Row 2: quick actions span columns 1–2; right rail spans both rows. */
+.dash-grid {
+  display: grid;
+  grid-template-columns: 1.05fr 1.4fr 0.9fr;
+  grid-template-rows: auto auto;
+  gap: var(--space-5);
+  align-items: start;
+  margin-bottom: var(--space-5);
+}
+.gc-chart { grid-column: 1; grid-row: 1; }
+.gc-transactions { grid-column: 2; grid-row: 1; }
+.gc-rail { grid-column: 3; grid-row: 1 / span 2; display: flex; flex-direction: column; gap: var(--space-5); }
+.gc-quick-actions { grid-column: 1 / span 2; grid-row: 2; }
+
+/* -------------------------------- Chart card -------------------------------- */
+.chart-range-select {
+  height: 34px;
+  padding: 0 30px 0 var(--space-3);
+  border: 1px solid var(--sage-line);
+  border-radius: var(--radius-pill);
+  background-color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--charcoal-ink);
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%231E2422' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+[data-theme='dark'] .chart-range-select { background-color: var(--deep-teal-600); }
+.chart-card-body { padding: var(--space-2) var(--space-5) var(--space-5); }
+.chart-plot { display: flex; gap: 10px; height: 220px; }
+.chart-yaxis {
+  display: flex; flex-direction: column-reverse; justify-content: space-between;
+  width: 46px; flex-shrink: 0; text-align: right;
+  font-family: var(--font-mono); font-size: 10.5px; color: #8A968F;
+  padding-bottom: 1px;
+}
+.chart-plot-area { position: relative; flex: 1; min-width: 0; }
+.chart-gridlines { position: absolute; inset: 0; display: flex; flex-direction: column-reverse; justify-content: space-between; pointer-events: none; }
+.chart-gridlines span { display: block; border-top: 1px dashed var(--sage-line); }
+.chart-gridlines span:first-child { border-top: 1px solid var(--sage-line); }
+.chart-bars { position: absolute; inset: 0; display: flex; align-items: flex-end; gap: clamp(6px, 1.6vw, 16px); padding: 0 2px; }
+.bar-col { flex: 1; height: 100%; min-width: 0; display: flex; align-items: flex-end; justify-content: center; position: relative; }
+.bar-col:focus-visible { outline: none; }
+.bar {
+  width: 58%; max-width: 34px; border-radius: 6px 6px 3px 3px;
+  background: var(--marigold);
+  opacity: 0.45;
+  height: 2%;
+  transition: height 700ms cubic-bezier(0.16, 1, 0.3, 1), opacity 160ms ease;
+  cursor: pointer;
+}
+.bar.is-today { opacity: 1; }
+.bar-col:hover .bar, .bar-col:focus-visible .bar { opacity: 1; }
+.bar-tooltip {
+  position: absolute; bottom: 100%; left: 50%; margin-bottom: 8px;
+  transform: translate(-50%, 4px);
+  background: var(--deep-teal-700); color: #fff;
+  font-family: var(--font-mono); font-size: 11px; font-weight: 500;
+  padding: 5px 9px; border-radius: 6px; white-space: nowrap;
+  opacity: 0; pointer-events: none;
+  transition: opacity 130ms ease, transform 130ms ease;
+  z-index: 5;
+}
+.bar-col:hover .bar-tooltip, .bar-col:focus-visible .bar-tooltip { opacity: 1; transform: translate(-50%, 0); }
+.chart-xaxis { display: flex; margin-top: 10px; padding-left: 56px; gap: clamp(6px, 1.6vw, 16px); }
+.chart-xaxis span {
+  flex: 1; min-width: 0; text-align: center; font-size: 11px; line-height: 1.35; color: #6B7A70;
+}
+.chart-xaxis span.is-today { color: var(--marigold-600); font-weight: 700; }
+.chart-legend { display: flex; align-items: center; gap: 8px; margin-top: var(--space-4); font-size: 0.75rem; color: #5C6B62; }
+.legend-dot { width: 9px; height: 9px; border-radius: 3px; background: var(--marigold); flex-shrink: 0; }
+
+/* -------------------------------- Quick actions -------------------------------- */
+.quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: var(--space-4);
+  padding: var(--space-5);
+}
+.qa-tile {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 10px;
+  padding: var(--space-4);
+  background: #fff;
+  border: 1px solid var(--sage-line);
+  border-radius: var(--radius-lg);
+  transition: border-color var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+  min-width: 0;
+}
+[data-theme='dark'] .qa-tile { background: var(--deep-teal-600); }
+.qa-tile:hover { border-color: var(--marigold); transform: translateY(-2px); box-shadow: var(--shadow-card); }
+.qa-icon {
+  width: 38px; height: 38px; border-radius: var(--radius);
+  display: flex; align-items: center; justify-content: center; color: #fff; flex-shrink: 0;
+}
+.qa-title { font-weight: 700; font-size: 0.8125rem; color: var(--charcoal-ink); }
+.qa-desc { font-size: 0.75rem; color: #6B7A70; line-height: 1.4; }
+
+/* -------------------------------- Responsive -------------------------------- */
+@media (max-width: 1440px) {
+  .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 1300px) {
+  .dash-grid { grid-template-columns: 1fr 1fr; }
+  .gc-chart { grid-column: 1; grid-row: 1; }
+  .gc-transactions { grid-column: 2; grid-row: 1; }
+  .gc-rail { grid-column: 1 / span 2; grid-row: 2; flex-direction: row; }
+  .gc-rail > .card { flex: 1; min-width: 0; }
+  .gc-quick-actions { grid-column: 1 / span 2; grid-row: 3; }
+  .quick-actions-grid { grid-template-columns: repeat(4, 1fr); }
+}
+@media (max-width: 1024px) {
+  .dash-grid { grid-template-columns: 1fr; }
+  .gc-chart, .gc-transactions { grid-column: 1; }
+  .gc-transactions { grid-row: 2; }
+  .gc-rail { grid-column: 1; grid-row: 3; flex-direction: column; }
+  .gc-quick-actions { grid-column: 1; grid-row: 4; }
+}
+@media (max-width: 860px) {
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .quick-actions-grid { grid-template-columns: repeat(3, 1fr); }
+  .gc-rail { flex-direction: column; }
+}
+@media (max-width: 620px) {
+  .page-header { flex-direction: column; }
+  .page-header .btn { align-self: stretch; }
+  .quick-actions-grid { grid-template-columns: repeat(2, 1fr); padding: var(--space-4); }
+  .chart-yaxis { width: 36px; font-size: 9.5px; }
+  .chart-xaxis { padding-left: 46px; }
+  .kpi-value { font-size: 1.4rem; }
+}
+
+.is-demo-disabled { opacity: .45; cursor: not-allowed !important; }
+.is-demo-disabled:hover { background: transparent !important; color: inherit !important; }
+</style></head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+<defs>
+<g id="icon-defaults" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"></g>
+</defs>
+
+<symbol id="icon-menu" viewBox="0 0 24 24"><g stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></g></symbol>
+
+<symbol id="icon-search" viewBox="0 0 24 24"><g stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></g></symbol>
+
+<symbol id="icon-chevron-down" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+
+<symbol id="icon-chevron-right" viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+
+<symbol id="icon-bell" viewBox="0 0 24 24"><g stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></g></symbol>
+
+<symbol id="icon-user" viewBox="0 0 24 24"><g stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="8" r="4"/></g></symbol>
+
+<symbol id="icon-sun" viewBox="0 0 24 24"><g stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="6.34" y2="6.34"/><line x1="17.66" y1="17.66" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="6.34" y2="17.66"/><line x1="17.66" y1="6.34" x2="19.07" y2="4.93"/></g></symbol>
+
+<symbol id="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+
+<symbol id="icon-settings" viewBox="0 0 24 24"><g stroke="currentColor" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></g></symbol>
+
+<symbol id="icon-x" viewBox="0 0 24 24"><g stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></g></symbol>
+
+<symbol id="icon-grid" viewBox="0 0 24 24"><g stroke="currentColor" fill="none" stroke-width="1.75" stroke-linejoin="round"><rect x="3" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.5"/></g></symbol>
+
+<symbol id="icon-cart" viewBox="0 0 24 24"><g stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.5 3h2l2.7 12.4a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L22 8H6"/></g></symbol>
+
+<symbol id="icon-trending-up" viewBox="0 0 24 24"><g stroke="currentColor" fill="none" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><polyline points="22.5 6.5 14 15 9.5 10.5 1.5 18.5"/><polyline points="16.5 6.5 22.5 6.5 22.5 12.5"/></g></symbol>
+
+<symbol id="icon-history" viewBox="0 0 24 24"><g stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><polyline points="3 3 3 8 8 8"/><polyline points="12 7 12 12 16 14"/></g></symbol>
+
+<symbol id="icon-box" viewBox="0 0 24 24"><g stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7.5" width="18" height="13" rx="1.5"/><path d="M3 7.5l3.2-4.5h11.6l3.2 4.5"/><line x1="3" y1="7.5" x2="21" y2="7.5"/><line x1="12" y1="7.5" x2="12" y2="20.5"/></g></symbol>
+
+<symbol id="icon-cube" viewBox="0 0 24 24"><g stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.3l8.2 4.4v10.6L12 21.7l-8.2-4.4V6.7L12 2.3z"/><path d="M3.8 6.7L12 11l8.2-4.3"/><line x1="12" y1="11" x2="12" y2="21.7"/></g></symbol>
+
+<symbol id="icon-users" viewBox="0 0 24 24"><g stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 21v-2a4 4 0 0 0-4-4H5.5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22.5 21v-2a4 4 0 0 0-3-3.87"/><path d="M15.5 3.13a4 4 0 0 1 0 7.75"/></g></symbol>
+
+<symbol id="icon-wallet" viewBox="0 0 24 24"><g stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="13.5" rx="2.5"/><path d="M2 10.5h20"/><circle cx="17.3" cy="15" r="1.15" fill="currentColor" stroke="none"/></g></symbol>
+
+<symbol id="icon-truck" viewBox="0 0 24 24"><g stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="13" height="10" rx="1"/><path d="M14 10.5h4.2l3.3 3.6V17H14z"/><circle cx="6" cy="19" r="2"/><circle cx="17.5" cy="19" r="2"/></g></symbol>
+
+<symbol id="icon-bag" viewBox="0 0 24 24"><g stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l1.3 12.1a1.6 1.6 0 0 1-1.6 1.9H6.3a1.6 1.6 0 0 1-1.6-1.9L6 8z"/><path d="M9 8V6.2a3 3 0 0 1 6 0V8"/></g></symbol>
+
+<symbol id="icon-bar-chart" viewBox="0 0 24 24"><g stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="20" x2="5" y2="12"/><line x1="12" y1="20" x2="12" y2="5"/><line x1="19" y1="20" x2="19" y2="15"/></g></symbol>
+
+<symbol id="icon-percent" viewBox="0 0 24 24"><g stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></g></symbol>
+
+<symbol id="icon-alert-triangle" viewBox="0 0 24 24"><g stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2l10 17.6H2L12 3.2z"/><line x1="12" y1="10" x2="12" y2="14.3"/><circle cx="12" cy="17.2" r="0.15" fill="currentColor"/></g></symbol>
+
+<symbol id="icon-file-text" viewBox="0 0 24 24"><g stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6.8A1.8 1.8 0 0 0 5 4.8v14.4A1.8 1.8 0 0 0 6.8 21h10.4a1.8 1.8 0 0 0 1.8-1.8V8l-5-5z"/><path d="M14 3v5h5"/><line x1="8.5" y1="13" x2="15.5" y2="13"/><line x1="8.5" y1="16.7" x2="13" y2="16.7"/></g></symbol>
+
+<symbol id="icon-banknote" viewBox="0 0 24 24"><g stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="1.75"/><circle cx="12" cy="12" r="3"/><line x1="6" y1="9" x2="6.01" y2="9"/><line x1="18" y1="15" x2="18.01" y2="15"/></g></symbol>
+
+<symbol id="icon-corner-up-left" viewBox="0 0 24 24"><g stroke="currentColor" fill="none" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-6a4 4 0 0 0-4-4H4"/></g></symbol>
+
+<symbol id="icon-clipboard-list" viewBox="0 0 24 24"><g stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="5.5" y="4" width="13" height="17" rx="2"/><path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/><line x1="8.5" y1="10.5" x2="14.5" y2="10.5"/><line x1="8.5" y1="14" x2="14.5" y2="14"/><line x1="8.5" y1="17.5" x2="12.5" y2="17.5"/></g></symbol>
+
+<symbol id="icon-building" viewBox="0 0 24 24"><g stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="1"/><line x1="9" y1="7.2" x2="9.01" y2="7.2"/><line x1="15" y1="7.2" x2="15.01" y2="7.2"/><line x1="9" y1="11.2" x2="9.01" y2="11.2"/><line x1="15" y1="11.2" x2="15.01" y2="11.2"/><path d="M10 21v-4h4v4"/></g></symbol>
+
+<symbol id="icon-credit-card" viewBox="0 0 24 24"><g stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="6" y1="15" x2="10" y2="15"/></g></symbol>
+
+<symbol id="icon-list" viewBox="0 0 24 24"><g stroke="currentColor" fill="none" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><line x1="8.5" y1="6" x2="21" y2="6"/><line x1="8.5" y1="12" x2="21" y2="12"/><line x1="8.5" y1="18" x2="21" y2="18"/><line x1="3.5" y1="6" x2="3.51" y2="6"/><line x1="3.5" y1="12" x2="3.51" y2="12"/><line x1="3.5" y1="18" x2="3.51" y2="18"/></g></symbol>
+
+<symbol id="icon-cloud" viewBox="0 0 24 24"><g stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10.5h-1.3A8 8 0 1 0 9 20h9a5 5 0 0 0 0-9.5z"/><polyline points="9.3 15.5 12 12.8 14.7 15.5"/><line x1="12" y1="12.8" x2="12" y2="19.5"/></g></symbol>
+
+<symbol id="icon-shield-check" viewBox="0 0 24 24"><g stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.3l8 3.6v6c0 5.1-3.4 8.8-8 9.8-4.6-1-8-4.7-8-9.8v-6l8-3.6z"/><polyline points="8.5 12 10.8 14.3 15.5 9.5"/></g></symbol>
+
+<symbol id="icon-check-circle" viewBox="0 0 24 24"><g stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.3"/><polyline points="7.8 12.3 10.6 15.2 16.2 8.8"/></g></symbol>
+
+<symbol id="icon-help-circle" viewBox="0 0 24 24"><g stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.3"/><path d="M9.3 9.2a2.7 2.7 0 0 1 5.2.9c0 1.8-2.6 2.1-2.6 3.4"/><line x1="12" y1="17.2" x2="12.01" y2="17.2"/></g></symbol>
+
+<symbol id="icon-keyboard" viewBox="0 0 24 24"><g stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="10" x2="6.01" y2="10"/><line x1="10" y1="10" x2="10.01" y2="10"/><line x1="14" y1="10" x2="14.01" y2="10"/><line x1="18" y1="10" x2="18.01" y2="10"/><line x1="6.5" y1="14" x2="17.5" y2="14"/></g></symbol>
+
+<symbol id="icon-package-search" viewBox="0 0 24 24"><g stroke="currentColor" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.7l6-3.4 6 3.4-6 3.4-6-3.4z"/><path d="M3 7.7v7l6 3.4v-7z"/><path d="M9 18.1l4-2.3"/><circle cx="17.3" cy="14.8" r="3"/><line x1="19.6" y1="17" x2="21.3" y2="18.7"/></g></symbol>
+
+<symbol id="icon-refresh" viewBox="0 0 24 24"><g stroke="currentColor" fill="none" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 2.5 21 6.5 17 10.5"/><path d="M3 12.5a9 9 0 0 1 15-6.7l3 3.7"/><polyline points="7 21.5 3 17.5 7 13.5"/><path d="M21 11.5a9 9 0 0 1-15 6.7l-3-3.7"/></g></symbol>
+
+<symbol id="icon-wifi-off" viewBox="0 0 24 24"><g stroke="currentColor" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><path d="M8.5 16.5a5 5 0 0 1 7 0"/><path d="M5 12.5a10 10 0 0 1 3-2.1"/><path d="M12.5 8.02c2.2 0 4.3.7 6 2"/><path d="M16.5 12.5c.6.4 1.1.9 1.6 1.5"/><line x1="12" y1="20" x2="12.01" y2="20"/></g></symbol>
+
+</svg>
+
+<div class="app-shell">
+
+  <!-- ============ PULSE STRIP — live sync status, GET /system/sync-status ============ -->
+  <div class="pulse-strip" id="pulseStrip" role="status" aria-live="polite">
+    <span class="pulse-item pulse-item--status" id="pulseSyncStatus">
+      <span class="pulse-dot" id="pulseDot" data-state="online" aria-hidden="true"></span>
+      <span id="pulseSyncLabel" data-i18n="status_synced">Synced</span>
+    </span>
+    <span class="pulse-sep" aria-hidden="true"></span>
+    <span class="pulse-item" id="pulseSdcStatus">
+      <svg class="pulse-icon" width="14" height="14"><use href="#icon-check-circle"/></svg>
+      <span id="pulseSdcLabel" data-i18n="sdc_authorized">SDC Authorized</span>
+    </span>
+    <span class="pulse-sep" aria-hidden="true"></span>
+    <span class="pulse-item">
+      <svg class="pulse-icon" width="14" height="14"><use href="#icon-history"/></svg>
+      <span data-i18n="last_update">Last Update</span>:&nbsp;<span id="pulseLastUpdate">—</span>
+    </span>
+    <span class="pulse-sep pulse-sep--push" aria-hidden="true"></span>
+    <span class="pulse-item pulse-item--branch">
+      <span data-i18n="active_branch">Active Branch</span>:&nbsp;<strong id="pulseBranchName">Gulshan Branch</strong>
+    </span>
+  </div>
+
+  <div class="app-body">
+
+    <!-- ============ SIDEBAR ============ -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <a href="dashboard.html" class="brand-mark" aria-label="ArchTech IMS">
+          <span class="brand-icon" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 21V9.5L12 4l8 5.5V21"/>
+              <path d="M9 21v-6h6v6"/>
+              <path d="M4 9.5h16"/>
+            </svg>
+          </span>
+          <span class="brand-text">
+            <span class="brand-name">ArchTech IMS</span>
+            <span class="brand-tagline" data-i18n="app_tagline">Inventory Management System</span>
+          </span>
+        </a>
+      </div>
+
+      <nav class="sidebar-nav" aria-label="Primary">
+        <ul class="nav-list">
+                                                <li class="nav-item is-active">
+                <a class="nav-link" href="dashboard.html" aria-current="page" data-route="/dashboard">
+                  <svg class="nav-icon" width="19" height="19"><use href="#icon-grid"/></svg>
+                  <span class="nav-label" data-i18n="nav_dashboard">Dashboard</span>
+                </a>
+              </li>
+                                                            <li class="nav-item ">
+                <a class="nav-link is-demo-disabled" href="#" onclick="return false" title="Not included in this demo"  data-route="/pos">
+                  <svg class="nav-icon" width="19" height="19"><use href="#icon-cart"/></svg>
+                  <span class="nav-label" data-i18n="nav_pos">POS / Billing</span>
+                </a>
+              </li>
+                                                            <li class="nav-group ">
+                <button type="button" class="nav-link nav-parent" aria-expanded="false" data-nav-toggle="sales">
+                  <svg class="nav-icon" width="19" height="19"><use href="#icon-trending-up"/></svg>
+                  <span class="nav-label" data-i18n="nav_sales">Sales</span>
+                  <svg class="nav-caret" width="15" height="15"><use href="#icon-chevron-down"/></svg>
+                </button>
+                <ul class="nav-sub" id="navSub-sales">
+                                      <li><a class="nav-sub-link is-demo-disabled" href="#" onclick="return false" title="Not included in this demo" data-i18n="nav_sales_new">New Sale</a></li>
+                                      <li><a class="nav-sub-link is-demo-disabled" href="#" onclick="return false" title="Not included in this demo" data-i18n="nav_sales_returns">Refunds &amp; Returns</a></li>
+                                  </ul>
+              </li>
+                                                            <li class="nav-item ">
+                <a class="nav-link" href="sales-history.html"  data-route="/sales/history">
+                  <svg class="nav-icon" width="19" height="19"><use href="#icon-history"/></svg>
+                  <span class="nav-label" data-i18n="nav_sales_history">Sales History</span>
+                </a>
+              </li>
+                                                            <li class="nav-item ">
+                <a class="nav-link" href="inventory.html"  data-route="/inventory">
+                  <svg class="nav-icon" width="19" height="19"><use href="#icon-box"/></svg>
+                  <span class="nav-label" data-i18n="nav_inventory">Inventory</span>
+                </a>
+              </li>
+                                                            <li class="nav-item ">
+                <a class="nav-link" href="customers.html"  data-route="/customers">
+                  <svg class="nav-icon" width="19" height="19"><use href="#icon-users"/></svg>
+                  <span class="nav-label" data-i18n="nav_customers">Customers (CRM)</span>
+                </a>
+              </li>
+                                                            <li class="nav-item ">
+                <a class="nav-link" href="dues.html"  data-route="/dues">
+                  <svg class="nav-icon" width="19" height="19"><use href="#icon-wallet"/></svg>
+                  <span class="nav-label" data-i18n="nav_dues">Dues / Receivables</span>
+                </a>
+              </li>
+                                                            <li class="nav-item ">
+                <a class="nav-link is-demo-disabled" href="#" onclick="return false" title="Not included in this demo"  data-route="/suppliers">
+                  <svg class="nav-icon" width="19" height="19"><use href="#icon-truck"/></svg>
+                  <span class="nav-label" data-i18n="nav_suppliers">Suppliers</span>
+                </a>
+              </li>
+                                                            <li class="nav-item ">
+                <a class="nav-link" href="purchase-orders.html"  data-route="/purchases">
+                  <svg class="nav-icon" width="19" height="19"><use href="#icon-bag"/></svg>
+                  <span class="nav-label" data-i18n="nav_purchases">Purchases</span>
+                </a>
+              </li>
+                                                            <li class="nav-item ">
+                <a class="nav-link" href="reports.html"  data-route="/reports">
+                  <svg class="nav-icon" width="19" height="19"><use href="#icon-bar-chart"/></svg>
+                  <span class="nav-label" data-i18n="nav_reports">Reports</span>
+                </a>
+              </li>
+                                                            <li class="nav-item ">
+                <a class="nav-link" href="vat-invoice.html"  data-route="/taxes-vat">
+                  <svg class="nav-icon" width="19" height="19"><use href="#icon-percent"/></svg>
+                  <span class="nav-label" data-i18n="nav_taxes_vat">Taxes &amp; VAT</span>
+                </a>
+              </li>
+                                                            <li class="nav-group ">
+                <button type="button" class="nav-link nav-parent" aria-expanded="false" data-nav-toggle="settings">
+                  <svg class="nav-icon" width="19" height="19"><use href="#icon-settings"/></svg>
+                  <span class="nav-label" data-i18n="nav_settings">Settings</span>
+                  <svg class="nav-caret" width="15" height="15"><use href="#icon-chevron-down"/></svg>
+                </button>
+                <ul class="nav-sub" id="navSub-settings">
+                                      <li><a class="nav-sub-link" href="settings.html" data-i18n="nav_settings_general">General Settings</a></li>
+                                      <li><a class="nav-sub-link is-demo-disabled" href="#" onclick="return false" title="Not included in this demo" data-i18n="nav_settings_users">User &amp; Role Mgmt.</a></li>
+                                      <li><a class="nav-sub-link is-demo-disabled" href="#" onclick="return false" title="Not included in this demo" data-i18n="nav_settings_branches">Branches</a></li>
+                                      <li><a class="nav-sub-link is-demo-disabled" href="#" onclick="return false" title="Not included in this demo" data-i18n="nav_settings_payment">Payment Methods</a></li>
+                                      <li><a class="nav-sub-link is-demo-disabled" href="#" onclick="return false" title="Not included in this demo" data-i18n="nav_settings_logs">System Logs</a></li>
+                                      <li><a class="nav-sub-link is-demo-disabled" href="#" onclick="return false" title="Not included in this demo" data-i18n="nav_settings_backup">Backup &amp; Restore</a></li>
+                                  </ul>
+              </li>
+                              </ul>
+      </nav>
+
+      <div class="sidebar-footer">
+        <p class="sidebar-copyright">© 2026 ArchTech IMS<br><span data-i18n="nav_footer_rights">All rights reserved</span></p>
+        <button type="button" class="theme-toggle" id="themeToggle" aria-pressed="false">
+          <svg width="16" height="16" id="themeIconSun"><use href="#icon-sun"/></svg>
+          <svg width="16" height="16" id="themeIconMoon" hidden><use href="#icon-moon"/></svg>
+          <span id="themeToggleLabel" data-i18n="theme_light">Light</span>
+        </button>
+      </div>
+    </aside>
+
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <!-- ============ MAIN COLUMN ============ -->
+    <div class="main-col">
+      <header class="topbar">
+        <button type="button" class="icon-btn topbar-menu-btn" id="sidebarToggle" aria-label="Toggle navigation" aria-expanded="true">
+          <svg width="20" height="20"><use href="#icon-menu"/></svg>
+        </button>
+
+        <div class="search-box">
+          <svg class="search-icon" width="17" height="17"><use href="#icon-search"/></svg>
+          <input type="search" id="globalSearch" data-i18n-placeholder="search_placeholder" placeholder="Search by invoice no, customer, product or menu..." autocomplete="off">
+          <kbd class="kbd-hint">F2</kbd>
+        </div>
+
+        <div class="topbar-right">
+
+          <div class="dropdown branch-dropdown" id="branchDropdown">
+            <button type="button" class="pill-btn" id="branchDropdownBtn" aria-haspopup="listbox" aria-expanded="false">
+              <span id="branchDropdownLabel">Gulshan Branch</span>
+              <svg width="14" height="14"><use href="#icon-chevron-down"/></svg>
+            </button>
+            <ul class="dropdown-menu" id="branchDropdownMenu" role="listbox" hidden></ul>
+          </div>
+
+          <div class="lang-toggle" id="langToggle" role="group" aria-label="Language">
+            <button type="button" class="lang-opt" data-lang="bn" id="langBtnBn">বাংলা</button>
+            <button type="button" class="lang-opt is-active" data-lang="en" id="langBtnEn">EN</button>
+          </div>
+
+          <div class="dropdown notif-dropdown" id="notifDropdown">
+            <button type="button" class="icon-btn notif-btn" id="notifBtn" aria-haspopup="true" aria-expanded="false" data-i18n-aria-label="notifications_label" aria-label="Notifications">
+              <svg width="19" height="19"><use href="#icon-bell"/></svg>
+              <span class="notif-badge" id="notifBadge" hidden></span>
+            </button>
+            <div class="dropdown-menu dropdown-menu--wide" id="notifMenu" hidden></div>
+          </div>
+
+          <div class="dropdown profile-dropdown" id="profileDropdown">
+            <button type="button" class="profile-btn" id="profileBtn" aria-haspopup="true" aria-expanded="false">
+              <span class="avatar" aria-hidden="true">
+                <svg width="18" height="18"><use href="#icon-user"/></svg>
+              </span>
+              <span class="profile-text">
+                <span class="profile-name">Admin User</span>
+                <span class="profile-role" data-i18n="profile_role">Administrator</span>
+              </span>
+              <svg width="14" height="14"><use href="#icon-chevron-down"/></svg>
+            </button>
+            <ul class="dropdown-menu" id="profileMenu" role="menu" hidden>
+              <li role="none"><a role="menuitem" href="#" data-i18n="view_profile">View Profile</a></li>
+              <li role="none"><a role="menuitem" href="index.html" data-i18n="log_out">Log Out</a></li>
+            </ul>
+          </div>
+
+        </div>
+      </header>
+
+      <main class="main-canvas" id="mainCanvas">
+        
+<div class="page-header">
+  <div>
+    <h1 class="page-title" data-i18n="page_title">Dashboard</h1>
+    <p class="page-subtitle" id="welcomeMessage">Welcome back, Admin User! Here&#039;s what&#039;s happening in your business.</p>
+  </div>
+  <div class="dropdown" id="customizeDropdown">
+    <button type="button" class="btn btn-outline" id="customizeBtn">
+      <svg width="16" height="16"><use href="#icon-settings"/></svg>
+      <span data-i18n="customize_dashboard">Customize Dashboard</span>
+    </button>
+  </div>
+</div>
+
+<!-- ============ KPI GRID — populated from GET /reports/sales-summary → .kpis ============ -->
+<section class="kpi-grid" id="kpiGrid" aria-label="Key metrics">
+
+  <article class="kpi-card">
+    <div class="kpi-icon fill-green"><svg width="21" height="21"><use href="#icon-banknote"/></svg></div>
+    <p class="kpi-label" data-i18n="kpi_today_sales">Today&#039;s Sales</p>
+    <p class="kpi-value skel" id="kpiTodaySales">৳ 0.00</p>
+    <p class="kpi-trend kpi-trend--up" id="kpiTodaySalesTrend"></p>
+  </article>
+
+  <article class="kpi-card">
+    <div class="kpi-icon fill-blue"><svg width="21" height="21"><use href="#icon-cube"/></svg></div>
+    <p class="kpi-label" data-i18n="kpi_stock_value">Stock Value</p>
+    <p class="kpi-value skel" id="kpiStockValue">৳ 0.00</p>
+    <p class="kpi-trend kpi-trend--up" id="kpiStockValueTrend"></p>
+  </article>
+
+  <article class="kpi-card">
+    <div class="kpi-icon fill-red"><svg width="21" height="21"><use href="#icon-alert-triangle"/></svg></div>
+    <p class="kpi-label" data-i18n="kpi_low_stock_items">Low Stock Items</p>
+    <p class="kpi-value skel" id="kpiLowStock">0</p>
+    <p class="kpi-trend kpi-trend--alert" id="kpiLowStockTrend"></p>
+  </article>
+
+  <article class="kpi-card">
+    <div class="kpi-icon fill-purple"><svg width="21" height="21"><use href="#icon-file-text"/></svg></div>
+    <p class="kpi-label" data-i18n="kpi_vat_collected">VAT Collected (This Month)</p>
+    <p class="kpi-value skel" id="kpiVatCollected">৳ 0.00</p>
+    <p class="kpi-trend kpi-trend--up" id="kpiVatCollectedTrend"></p>
+  </article>
+
+  <article class="kpi-card">
+    <div class="kpi-icon fill-amber"><svg width="21" height="21"><use href="#icon-wallet"/></svg></div>
+    <p class="kpi-label" data-i18n="kpi_total_outstanding">Total Outstanding</p>
+    <p class="kpi-value skel" id="kpiOutstanding">৳ 0.00</p>
+    <p class="kpi-trend kpi-trend--bad" id="kpiOutstandingTrend"></p>
+  </article>
+
+  <article class="kpi-card">
+    <div class="kpi-icon fill-teal"><svg width="21" height="21"><use href="#icon-users"/></svg></div>
+    <p class="kpi-label" data-i18n="kpi_total_customers">Total Customers</p>
+    <p class="kpi-value skel" id="kpiCustomers">0</p>
+    <p class="kpi-trend kpi-trend--up" id="kpiCustomersTrend"></p>
+  </article>
+
+</section>
+
+<!-- ============ CHART / TRANSACTIONS / RIGHT RAIL ============ -->
+<section class="dash-grid">
+
+  <div class="card gc-chart">
+    <div class="card-header">
+      <h2 class="card-title" data-i18n="sales_overview">Sales Overview</h2>
+      <select class="chart-range-select" id="chartRangeSelect" aria-label="Sales Overview">
+        <option value="today" data-i18n="range_today">Today</option>
+        <option value="week" selected data-i18n="range_this_week">This Week</option>
+        <option value="month" data-i18n="range_this_month">This Month</option>
+      </select>
+    </div>
+    <div class="chart-card-body">
+      <div class="chart-plot">
+        <div class="chart-yaxis" id="chartYAxis"></div>
+        <div class="chart-plot-area">
+          <div class="chart-gridlines" id="chartGridlines"></div>
+          <div class="chart-bars" id="chartBars"></div>
+        </div>
+      </div>
+      <div class="chart-xaxis" id="chartXAxis"></div>
+      <div class="chart-legend">
+        <span class="legend-dot" aria-hidden="true"></span>
+        <span data-i18n="legend_sales">Sales (৳)</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card gc-transactions">
+    <div class="card-header">
+      <h2 class="card-title" data-i18n="recent_transactions">Recent Transactions</h2>
+      <a href="sales-history.html" class="card-link"><span data-i18n="view_all">View All</span><svg width="14" height="14"><use href="#icon-chevron-right"/></svg></a>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th data-i18n="th_type">Type</th>
+            <th data-i18n="th_invoice_no">Invoice No</th>
+            <th data-i18n="th_customer">Customer</th>
+            <th data-i18n="th_amount">Amount (৳)</th>
+            <th data-i18n="th_time">Time</th>
+            <th data-i18n="th_status">Status</th>
+          </tr>
+        </thead>
+        <tbody id="recentTransactionsBody">
+          <tr><td colspan="6" class="table-empty" data-i18n="loading">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="gc-rail">
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title" data-i18n="low_stock_alerts">Low Stock Alerts</h2>
+        <a href="inventory.html" class="card-link"><span data-i18n="view_all">View All</span><svg width="14" height="14"><use href="#icon-chevron-right"/></svg></a>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th data-i18n="th_sku">SKU</th>
+              <th data-i18n="th_product_name">Product Name</th>
+              <th data-i18n="th_current_stock">Current Stock</th>
+              <th data-i18n="th_min_level">Min. Level</th>
+            </tr>
+          </thead>
+          <tbody id="lowStockBody">
+            <tr><td colspan="4" class="table-empty" data-i18n="loading">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title"><span data-i18n="top_selling_items">Top Selling Items</span> <span style="font-weight:500;color:#8A968F;">(<span data-i18n="this_month">This Month</span>)</span></h2>
+        <a href="reports.html" class="card-link"><span data-i18n="view_all">View All</span><svg width="14" height="14"><use href="#icon-chevron-right"/></svg></a>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th data-i18n="th_sku">SKU</th>
+              <th data-i18n="th_product_name">Product Name</th>
+              <th data-i18n="th_sold_qty">Sold Qty</th>
+              <th data-i18n="th_revenue">Revenue (৳)</th>
+            </tr>
+          </thead>
+          <tbody id="topSellingBody">
+            <tr><td colspan="4" class="table-empty" data-i18n="loading">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card gc-quick-actions">
+    <nav class="quick-actions-grid" aria-label="Quick actions">
+              <a class="qa-tile is-demo-disabled" href="#" onclick="return false" title="Not included in this demo" data-route="/pos">
+          <span class="qa-icon fill-amber"><svg width="19" height="19"><use href="#icon-cart"/></svg></span>
+          <span class="qa-title" data-i18n="qa_pos_title">POS / Billing</span>
+          <span class="qa-desc" data-i18n="qa_pos_desc">Create invoice &amp; process payments</span>
+        </a>
+              <a class="qa-tile" href="sales-history.html" data-route="/sales/history">
+          <span class="qa-icon fill-teal"><svg width="19" height="19"><use href="#icon-history"/></svg></span>
+          <span class="qa-title" data-i18n="qa_sales_history_title">Sales History</span>
+          <span class="qa-desc" data-i18n="qa_sales_history_desc">View all sales transactions</span>
+        </a>
+              <a class="qa-tile" href="inventory.html" data-route="/inventory">
+          <span class="qa-icon fill-purple"><svg width="19" height="19"><use href="#icon-box"/></svg></span>
+          <span class="qa-title" data-i18n="qa_inventory_title">Inventory</span>
+          <span class="qa-desc" data-i18n="qa_inventory_desc">Manage stock items, adjustments</span>
+        </a>
+              <a class="qa-tile" href="purchase-orders.html" data-route="/purchasing/orders">
+          <span class="qa-icon fill-amber"><svg width="19" height="19"><use href="#icon-clipboard-list"/></svg></span>
+          <span class="qa-title" data-i18n="qa_purchase_orders_title">Purchase Orders</span>
+          <span class="qa-desc" data-i18n="qa_purchase_orders_desc">Create &amp; manage purchase orders</span>
+        </a>
+              <a class="qa-tile is-demo-disabled" href="#" onclick="return false" title="Not included in this demo" data-route="/suppliers">
+          <span class="qa-icon fill-teal"><svg width="19" height="19"><use href="#icon-truck"/></svg></span>
+          <span class="qa-title" data-i18n="qa_suppliers_title">Suppliers</span>
+          <span class="qa-desc" data-i18n="qa_suppliers_desc">Manage supplier information</span>
+        </a>
+              <a class="qa-tile" href="purchase-orders.html" data-route="/purchases">
+          <span class="qa-icon fill-teal"><svg width="19" height="19"><use href="#icon-bag"/></svg></span>
+          <span class="qa-title" data-i18n="qa_purchases_title">Purchases</span>
+          <span class="qa-desc" data-i18n="qa_purchases_desc">View purchase transactions</span>
+        </a>
+              <a class="qa-tile" href="customers.html" data-route="/customers">
+          <span class="qa-icon fill-amber"><svg width="19" height="19"><use href="#icon-users"/></svg></span>
+          <span class="qa-title" data-i18n="qa_customers_title">Customers (CRM)</span>
+          <span class="qa-desc" data-i18n="qa_customers_desc">Manage customers and profiles</span>
+        </a>
+              <a class="qa-tile" href="dues.html" data-route="/dues">
+          <span class="qa-icon fill-teal"><svg width="19" height="19"><use href="#icon-wallet"/></svg></span>
+          <span class="qa-title" data-i18n="qa_dues_title">Dues / Receivables</span>
+          <span class="qa-desc" data-i18n="qa_dues_desc">Track customer outstanding dues</span>
+        </a>
+              <a class="qa-tile" href="reports.html" data-route="/reports/sales">
+          <span class="qa-icon fill-purple"><svg width="19" height="19"><use href="#icon-bar-chart"/></svg></span>
+          <span class="qa-title" data-i18n="qa_sales_reports_title">Sales Reports</span>
+          <span class="qa-desc" data-i18n="qa_sales_reports_desc">View sales &amp; profit reports</span>
+        </a>
+              <a class="qa-tile" href="reports.html" data-route="/reports/inventory">
+          <span class="qa-icon fill-amber"><svg width="19" height="19"><use href="#icon-package-search"/></svg></span>
+          <span class="qa-title" data-i18n="qa_inventory_reports_title">Inventory Reports</span>
+          <span class="qa-desc" data-i18n="qa_inventory_reports_desc">Stock &amp; movement reports</span>
+        </a>
+              <a class="qa-tile" href="reports.html" data-route="/reports/vat">
+          <span class="qa-icon fill-teal"><svg width="19" height="19"><use href="#icon-file-text"/></svg></span>
+          <span class="qa-title" data-i18n="qa_vat_reports_title">VAT / Tax Reports</span>
+          <span class="qa-desc" data-i18n="qa_vat_reports_desc">VAT collected &amp; tax reports</span>
+        </a>
+              <a class="qa-tile" href="vat-invoice.html" data-route="/taxes-vat">
+          <span class="qa-icon fill-purple"><svg width="19" height="19"><use href="#icon-percent"/></svg></span>
+          <span class="qa-title" data-i18n="qa_taxes_vat_title">Taxes &amp; VAT</span>
+          <span class="qa-desc" data-i18n="qa_taxes_vat_desc">Manage VAT, SDC &amp; tax settings</span>
+        </a>
+              <a class="qa-tile" href="settings.html" data-route="/settings/general">
+          <span class="qa-icon fill-teal"><svg width="19" height="19"><use href="#icon-settings"/></svg></span>
+          <span class="qa-title" data-i18n="qa_general_settings_title">General Settings</span>
+          <span class="qa-desc" data-i18n="qa_general_settings_desc">Configure system preferences</span>
+        </a>
+              <a class="qa-tile is-demo-disabled" href="#" onclick="return false" title="Not included in this demo" data-route="/settings/users">
+          <span class="qa-icon fill-amber"><svg width="19" height="19"><use href="#icon-shield-check"/></svg></span>
+          <span class="qa-title" data-i18n="qa_user_role_title">User &amp; Role Mgmt.</span>
+          <span class="qa-desc" data-i18n="qa_user_role_desc">Manage users and roles</span>
+        </a>
+              <a class="qa-tile is-demo-disabled" href="#" onclick="return false" title="Not included in this demo" data-route="/settings/branches">
+          <span class="qa-icon fill-purple"><svg width="19" height="19"><use href="#icon-building"/></svg></span>
+          <span class="qa-title" data-i18n="qa_branches_title">Branches</span>
+          <span class="qa-desc" data-i18n="qa_branches_desc">Manage branches and locations</span>
+        </a>
+              <a class="qa-tile is-demo-disabled" href="#" onclick="return false" title="Not included in this demo" data-route="/settings/payment-methods">
+          <span class="qa-icon fill-teal"><svg width="19" height="19"><use href="#icon-credit-card"/></svg></span>
+          <span class="qa-title" data-i18n="qa_payment_methods_title">Payment Methods</span>
+          <span class="qa-desc" data-i18n="qa_payment_methods_desc">Manage payment methods</span>
+        </a>
+              <a class="qa-tile is-demo-disabled" href="#" onclick="return false" title="Not included in this demo" data-route="/settings/logs">
+          <span class="qa-icon fill-amber"><svg width="19" height="19"><use href="#icon-list"/></svg></span>
+          <span class="qa-title" data-i18n="qa_system_logs_title">System Logs</span>
+          <span class="qa-desc" data-i18n="qa_system_logs_desc">View system activity and logs</span>
+        </a>
+              <a class="qa-tile is-demo-disabled" href="#" onclick="return false" title="Not included in this demo" data-route="/settings/backup">
+          <span class="qa-icon fill-purple"><svg width="19" height="19"><use href="#icon-cloud"/></svg></span>
+          <span class="qa-title" data-i18n="qa_backup_restore_title">Backup &amp; Restore</span>
+          <span class="qa-desc" data-i18n="qa_backup_restore_desc">Backup database &amp; restore data</span>
+        </a>
+          </nav>
+  </div>
+
+</section>
+
+      </main>
+
+      <footer class="app-footer">
+        <span class="app-footer__version" data-i18n="version_label">You are using ArchTech IMS</span>&nbsp;v2.6.0
+        <span class="app-footer__right">
+          <span data-i18n="need_help">Need help?</span>
+          <a href="#" class="footer-link"><svg width="14" height="14"><use href="#icon-help-circle"/></svg><span data-i18n="contact_support">Contact Support</span></a>
+          <span class="footer-divider" aria-hidden="true">|</span>
+          <a href="#" class="footer-link"><svg width="14" height="14"><use href="#icon-keyboard"/></svg><span data-i18n="keyboard_shortcuts">Keyboard Shortcuts</span></a>
+          <kbd class="kbd-hint">F1</kbd>
+        </span>
+      </footer>
+    </div>
+  </div>
+</div>
+
+<script>
+  window.__ARCHTECH__ = {
+    lang: "en",
+    apiBase: '/api/v1',
+    branchId: 1  };
+</script>
+<script>
+/* ============================================================================
+   PREVIEW-ONLY SHIM — not part of the deliverable.
+   Everything in this block exists only so this single static file can be
+   reviewed without a live PHP+MySQL
+   backend. It intercepts window.fetch for the exact endpoints this screen
+   calls and answers with the sample data in dev/demo-data.php (mirrored
+   here as JSON). app.js / dashboard.js / i18n.js below are byte-for-byte
+   the same files that ship in public/assets/js/ — no preview-specific
+   branches inside them. (Note for future editors: never let the literal
+   text "script end-tag" appear unescaped inside this block — the HTML
+   parser closes on that byte sequence even inside a JS comment or string.)
+   ============================================================================ */
+window.__ARCHTECH_PREVIEW__ = true;
+(function () {
+  var DEMO = {"sync_status":{"online":true,"branch_name":"Gulshan Branch","pending_by_type":[],"last_sdc_success_at":"2026-07-04T10:24:00+06:00","last_backup_success_at":"2026-07-04T02:00:00+06:00"},"branches":[{"id":1,"name":"Gulshan Branch","is_main":true},{"id":2,"name":"Dhanmondi Branch","is_main":false},{"id":3,"name":"Uttara Branch","is_main":false},{"id":4,"name":"Chattogram Branch","is_main":false}],"sales_summary":{"kpis":{"today_sales":{"value":125450,"change_percent":12.6,"direction":"up","compare":"vs_yesterday"},"stock_value":{"value":4285320.5,"change_percent":8.9,"direction":"up","compare":"vs_last_month"},"low_stock_items":{"value":23,"new_alerts":6},"vat_collected_this_month":{"value":520150,"change_percent":10.3,"direction":"up","compare":"vs_last_month"},"total_outstanding":{"value":385420,"change_percent":8.4,"direction":"up","compare":"vs_last_month","bad_when_up":true},"total_customers":{"value":1245,"change_percent":6.2,"direction":"up","compare":"vs_last_month"}},"sales_chart":{"currency":"BDT","ranges":{"today":[{"label":"9–10 AM","day":"","value":45000,"is_today":false},{"label":"10–11 AM","day":"","value":80450,"is_today":true}],"week":[{"label":"28 Jun","day":"Sat","value":68000,"is_today":false},{"label":"29 Jun","day":"Sun","value":98000,"is_today":false},{"label":"30 Jun","day":"Mon","value":112000,"is_today":false},{"label":"01 Jul","day":"Tue","value":85000,"is_today":false},{"label":"02 Jul","day":"Wed","value":92000,"is_today":false},{"label":"03 Jul","day":"Thu","value":118000,"is_today":false},{"label":"04 Jul","day":"Fri","value":125450,"is_today":true}],"month":[{"label":"01–07 Jun","day":"","value":620000,"is_today":false},{"label":"08–14 Jun","day":"","value":705000,"is_today":false},{"label":"15–21 Jun","day":"","value":680000,"is_today":false},{"label":"22–28 Jun","day":"","value":742000,"is_today":false},{"label":"29 Jun–04 Jul","day":"","value":630450,"is_today":true}]}},"recent_transactions":[{"type":"sale","invoice_no":"INV-2026-07-0001","customer":null,"amount":2450,"time":"10:15 AM","status":"completed"},{"type":"sale","invoice_no":"INV-2026-07-0002","customer":"Arif Hossain","amount":1850,"time":"10:12 AM","status":"completed"},{"type":"return","invoice_no":"RET-2026-07-0001","customer":"Musfika Jahan","amount":-650,"time":"09:58 AM","status":"returned"},{"type":"sale","invoice_no":"INV-2026-07-0003","customer":"Shafiqul Islam","amount":5600,"time":"09:50 AM","status":"completed"},{"type":"sale","invoice_no":"INV-2026-07-0004","customer":"Rafiq Ahmed","amount":1200,"time":"09:45 AM","status":"completed"},{"type":"sale","invoice_no":"INV-2026-07-0005","customer":"Bakhtiar Rahman","amount":8450,"time":"09:48 AM","status":"completed"}],"low_stock_alerts":[{"sku":"PRD-10034","product_name":"Canon Ink 745 (Black)","current_stock":2,"min_level":10},{"sku":"PRD-10088","product_name":"HP 1005 Toner","current_stock":1,"min_level":5},{"sku":"PRD-10121","product_name":"A4 Paper 80 GSM","current_stock":3,"min_level":20},{"sku":"PRD-10045","product_name":"USB Cable Type-C","current_stock":4,"min_level":15},{"sku":"PRD-10067","product_name":"Epson 003 Ink (Cyan)","current_stock":2,"min_level":10}],"top_selling_items":[{"sku":"PRD-10021","product_name":"A4 Paper 80 GSM","sold_qty":245,"revenue":36750},{"sku":"PRD-10011","product_name":"HP 1005 Toner","sold_qty":98,"revenue":29400},{"sku":"PRD-10034","product_name":"Canon Ink 745 (Black)","sold_qty":156,"revenue":23400},{"sku":"PRD-10005","product_name":"USB Flash Drive 32GB","sold_qty":134,"revenue":20100},{"sku":"PRD-10067","product_name":"Epson 003 Ink (Cyan)","sold_qty":112,"revenue":16800}]}};
+  var LANG = { en: {
+    "app_name": "ArchTech IMS",
+    "app_tagline": "Inventory Management System",
+    "nav_dashboard": "Dashboard",
+    "nav_pos": "POS / Billing",
+    "nav_sales": "Sales",
+    "nav_sales_new": "New Sale",
+    "nav_sales_returns": "Refunds & Returns",
+    "nav_sales_history": "Sales History",
+    "nav_inventory": "Inventory",
+    "nav_customers": "Customers (CRM)",
+    "nav_dues": "Dues / Receivables",
+    "nav_suppliers": "Suppliers",
+    "nav_purchases": "Purchases",
+    "nav_reports": "Reports",
+    "nav_taxes_vat": "Taxes & VAT",
+    "nav_settings": "Settings",
+    "nav_settings_general": "General Settings",
+    "nav_settings_users": "User & Role Mgmt.",
+    "nav_settings_branches": "Branches",
+    "nav_settings_payment": "Payment Methods",
+    "nav_settings_logs": "System Logs",
+    "nav_settings_backup": "Backup & Restore",
+    "nav_footer_rights": "All rights reserved",
+    "search_placeholder": "Search by invoice no, customer, product or menu...",
+    "lang_bn": "বাংলা",
+    "lang_en": "EN",
+    "notifications_label": "Notifications",
+    "no_notifications": "You're all caught up",
+    "profile_role": "Administrator",
+    "view_profile": "View Profile",
+    "log_out": "Log Out",
+    "status_synced": "Synced",
+    "status_syncing": "Syncing",
+    "status_offline": "Offline",
+    "pending_sync_one": "pending sync",
+    "pending_sync_other": "pending sync",
+    "sdc_authorized": "SDC Authorized",
+    "sdc_pending": "SDC Pending Sync",
+    "last_update": "Last Update",
+    "active_branch": "Active Branch",
+    "page_title": "Dashboard",
+    "welcome_message": "Welcome back, :name! Here's what's happening in your business.",
+    "customize_dashboard": "Customize Dashboard",
+    "customize_hint": "Show or hide dashboard sections",
+    "customize_kpis": "KPI Cards",
+    "customize_chart": "Sales Chart",
+    "customize_transactions": "Recent Transactions",
+    "customize_low_stock": "Low Stock Alerts",
+    "customize_top_selling": "Top Selling Items",
+    "customize_quick_actions": "Quick Actions",
+    "kpi_today_sales": "Today's Sales",
+    "kpi_stock_value": "Stock Value",
+    "kpi_low_stock_items": "Low Stock Items",
+    "kpi_vat_collected": "VAT Collected (This Month)",
+    "kpi_total_outstanding": "Total Outstanding",
+    "kpi_total_customers": "Total Customers",
+    "vs_yesterday": "vs Yesterday",
+    "vs_last_month": "vs Last Month",
+    "new_alerts": "New Alerts",
+    "sales_overview": "Sales Overview",
+    "range_today": "Today",
+    "range_this_week": "This Week",
+    "range_this_month": "This Month",
+    "legend_sales": "Sales (৳)",
+    "chart_empty": "No sales recorded for this range yet.",
+    "recent_transactions": "Recent Transactions",
+    "view_all": "View All",
+    "th_type": "Type",
+    "th_invoice_no": "Invoice No",
+    "th_customer": "Customer",
+    "th_amount": "Amount (৳)",
+    "th_time": "Time",
+    "th_status": "Status",
+    "status_completed": "Completed",
+    "status_returned": "Returned",
+    "status_due": "Due",
+    "walk_in_customer": "Walk-in Customer",
+    "low_stock_alerts": "Low Stock Alerts",
+    "th_sku": "SKU",
+    "th_product_name": "Product Name",
+    "th_current_stock": "Current Stock",
+    "th_min_level": "Min. Level",
+    "low_stock_empty": "Nothing below its reorder level right now.",
+    "top_selling_items": "Top Selling Items",
+    "this_month": "This Month",
+    "th_sold_qty": "Sold Qty",
+    "th_revenue": "Revenue (৳)",
+    "qa_pos_title": "POS / Billing",
+    "qa_pos_desc": "Create invoice & process payments",
+    "qa_sales_history_title": "Sales History",
+    "qa_sales_history_desc": "View all sales transactions",
+    "qa_inventory_title": "Inventory",
+    "qa_inventory_desc": "Manage stock items, adjustments",
+    "qa_purchase_orders_title": "Purchase Orders",
+    "qa_purchase_orders_desc": "Create & manage purchase orders",
+    "qa_suppliers_title": "Suppliers",
+    "qa_suppliers_desc": "Manage supplier information",
+    "qa_purchases_title": "Purchases",
+    "qa_purchases_desc": "View purchase transactions",
+    "qa_customers_title": "Customers (CRM)",
+    "qa_customers_desc": "Manage customers and profiles",
+    "qa_dues_title": "Dues / Receivables",
+    "qa_dues_desc": "Track customer outstanding dues",
+    "qa_sales_reports_title": "Sales Reports",
+    "qa_sales_reports_desc": "View sales & profit reports",
+    "qa_inventory_reports_title": "Inventory Reports",
+    "qa_inventory_reports_desc": "Stock & movement reports",
+    "qa_vat_reports_title": "VAT / Tax Reports",
+    "qa_vat_reports_desc": "VAT collected & tax reports",
+    "qa_taxes_vat_title": "Taxes & VAT",
+    "qa_taxes_vat_desc": "Manage VAT, SDC & tax settings",
+    "qa_general_settings_title": "General Settings",
+    "qa_general_settings_desc": "Configure system preferences",
+    "qa_user_role_title": "User & Role Mgmt.",
+    "qa_user_role_desc": "Manage users and roles",
+    "qa_branches_title": "Branches",
+    "qa_branches_desc": "Manage branches and locations",
+    "qa_payment_methods_title": "Payment Methods",
+    "qa_payment_methods_desc": "Manage payment methods",
+    "qa_system_logs_title": "System Logs",
+    "qa_system_logs_desc": "View system activity and logs",
+    "qa_backup_restore_title": "Backup & Restore",
+    "qa_backup_restore_desc": "Backup database & restore data",
+    "version_label": "You are using ArchTech IMS",
+    "need_help": "Need help?",
+    "contact_support": "Contact Support",
+    "keyboard_shortcuts": "Keyboard Shortcuts",
+    "theme_light": "Light",
+    "theme_dark": "Dark",
+    "retry": "Retry",
+    "loading": "Loading…",
+    "error_loading_summary": "Couldn't load dashboard data. Check the connection and try again."
+}
+, bn: {
+    "app_name": "ArchTech IMS",
+    "app_tagline": "ইনভেন্টরি ম্যানেজমেন্ট সিস্টেম",
+    "nav_dashboard": "ড্যাশবোর্ড",
+    "nav_pos": "পিওএস / বিলিং",
+    "nav_sales": "বিক্রয়",
+    "nav_sales_new": "নতুন বিক্রয়",
+    "nav_sales_returns": "রিফান্ড ও রিটার্ন",
+    "nav_sales_history": "বিক্রয়ের ইতিহাস",
+    "nav_inventory": "ইনভেন্টরি",
+    "nav_customers": "গ্রাহক (সিআরএম)",
+    "nav_dues": "বকেয়া / প্রাপ্য",
+    "nav_suppliers": "সরবরাহকারী",
+    "nav_purchases": "ক্রয়",
+    "nav_reports": "প্রতিবেদন",
+    "nav_taxes_vat": "কর ও ভ্যাট",
+    "nav_settings": "সেটিংস",
+    "nav_settings_general": "সাধারণ সেটিংস",
+    "nav_settings_users": "ব্যবহারকারী ও রোল ব্যবস্থাপনা",
+    "nav_settings_branches": "শাখাসমূহ",
+    "nav_settings_payment": "পেমেন্ট পদ্ধতি",
+    "nav_settings_logs": "সিস্টেম লগ",
+    "nav_settings_backup": "ব্যাকআপ ও পুনরুদ্ধার",
+    "nav_footer_rights": "সর্বস্বত্ব সংরক্ষিত",
+    "search_placeholder": "চালান নং, গ্রাহক, পণ্য বা মেনু দিয়ে খুঁজুন...",
+    "lang_bn": "বাংলা",
+    "lang_en": "EN",
+    "notifications_label": "নোটিফিকেশন",
+    "no_notifications": "নতুন কোনো নোটিফিকেশন নেই",
+    "profile_role": "প্রশাসক",
+    "view_profile": "প্রোফাইল দেখুন",
+    "log_out": "লগ আউট",
+    "status_synced": "সিঙ্ক সম্পন্ন",
+    "status_syncing": "সিঙ্ক হচ্ছে",
+    "status_offline": "অফলাইন",
+    "pending_sync_one": "টি সিঙ্ক বাকি",
+    "pending_sync_other": "টি সিঙ্ক বাকি",
+    "sdc_authorized": "এসডিসি অনুমোদিত",
+    "sdc_pending": "এসডিসি সিঙ্ক বাকি",
+    "last_update": "সর্বশেষ আপডেট",
+    "active_branch": "সক্রিয় শাখা",
+    "page_title": "ড্যাশবোর্ড",
+    "welcome_message": "স্বাগতম, :name! আপনার ব্যবসায় এখন যা ঘটছে তা দেখে নিন।",
+    "customize_dashboard": "ড্যাশবোর্ড কাস্টমাইজ করুন",
+    "customize_hint": "ড্যাশবোর্ড সেকশন দেখান বা লুকান",
+    "customize_kpis": "কেপিআই কার্ড",
+    "customize_chart": "বিক্রয় চার্ট",
+    "customize_transactions": "সাম্প্রতিক লেনদেন",
+    "customize_low_stock": "কম মজুদ সতর্কতা",
+    "customize_top_selling": "সর্বাধিক বিক্রিত পণ্য",
+    "customize_quick_actions": "কুইক অ্যাকশন",
+    "kpi_today_sales": "আজকের বিক্রয়",
+    "kpi_stock_value": "মজুদ পণ্যের মূল্য",
+    "kpi_low_stock_items": "কম মজুদ থাকা পণ্য",
+    "kpi_vat_collected": "ভ্যাট সংগ্রহ (চলতি মাস)",
+    "kpi_total_outstanding": "মোট বকেয়া",
+    "kpi_total_customers": "মোট গ্রাহক",
+    "vs_yesterday": "গতকালের তুলনায়",
+    "vs_last_month": "গত মাসের তুলনায়",
+    "new_alerts": "টি নতুন সতর্কতা",
+    "sales_overview": "বিক্রয় সংক্ষিপ্ত বিবরণ",
+    "range_today": "আজ",
+    "range_this_week": "এই সপ্তাহ",
+    "range_this_month": "এই মাস",
+    "legend_sales": "বিক্রয় (৳)",
+    "chart_empty": "এই সময়সীমায় এখনও কোনো বিক্রয় নেই।",
+    "recent_transactions": "সাম্প্রতিক লেনদেন",
+    "view_all": "সব দেখুন",
+    "th_type": "ধরন",
+    "th_invoice_no": "চালান নং",
+    "th_customer": "গ্রাহক",
+    "th_amount": "পরিমাণ (৳)",
+    "th_time": "সময়",
+    "th_status": "অবস্থা",
+    "status_completed": "সম্পন্ন",
+    "status_returned": "ফেরত",
+    "status_due": "বকেয়া",
+    "walk_in_customer": "ওয়াক-ইন গ্রাহক",
+    "low_stock_alerts": "কম মজুদ সতর্কতা",
+    "th_sku": "এসকেইউ",
+    "th_product_name": "পণ্যের নাম",
+    "th_current_stock": "বর্তমান মজুদ",
+    "th_min_level": "সর্বনিম্ন সীমা",
+    "low_stock_empty": "বর্তমানে কোনো পণ্য পুনরায় অর্ডারের সীমার নিচে নেই।",
+    "top_selling_items": "সর্বাধিক বিক্রিত পণ্য",
+    "this_month": "চলতি মাস",
+    "th_sold_qty": "বিক্রিত সংখ্যা",
+    "th_revenue": "আয় (৳)",
+    "qa_pos_title": "পিওএস / বিলিং",
+    "qa_pos_desc": "চালান তৈরি ও পেমেন্ট গ্রহণ",
+    "qa_sales_history_title": "বিক্রয়ের ইতিহাস",
+    "qa_sales_history_desc": "সকল বিক্রয় লেনদেন দেখুন",
+    "qa_inventory_title": "ইনভেন্টরি",
+    "qa_inventory_desc": "স্টক আইটেম ও সমন্বয় পরিচালনা",
+    "qa_purchase_orders_title": "পারচেজ অর্ডার",
+    "qa_purchase_orders_desc": "ক্রয় আদেশ তৈরি ও পরিচালনা",
+    "qa_suppliers_title": "সরবরাহকারী",
+    "qa_suppliers_desc": "সরবরাহকারীর তথ্য পরিচালনা",
+    "qa_purchases_title": "ক্রয়",
+    "qa_purchases_desc": "ক্রয় লেনদেন দেখুন",
+    "qa_customers_title": "গ্রাহক (সিআরএম)",
+    "qa_customers_desc": "গ্রাহক ও প্রোফাইল পরিচালনা",
+    "qa_dues_title": "বকেয়া / প্রাপ্য",
+    "qa_dues_desc": "গ্রাহকের বকেয়া ট্র্যাক করুন",
+    "qa_sales_reports_title": "বিক্রয় প্রতিবেদন",
+    "qa_sales_reports_desc": "বিক্রয় ও মুনাফার প্রতিবেদন দেখুন",
+    "qa_inventory_reports_title": "ইনভেন্টরি প্রতিবেদন",
+    "qa_inventory_reports_desc": "স্টক ও মুভমেন্ট প্রতিবেদন",
+    "qa_vat_reports_title": "ভ্যাট / ট্যাক্স প্রতিবেদন",
+    "qa_vat_reports_desc": "ভ্যাট সংগ্রহ ও কর প্রতিবেদন",
+    "qa_taxes_vat_title": "কর ও ভ্যাট",
+    "qa_taxes_vat_desc": "ভ্যাট, এসডিসি ও কর সেটিংস পরিচালনা",
+    "qa_general_settings_title": "সাধারণ সেটিংস",
+    "qa_general_settings_desc": "সিস্টেম পছন্দসমূহ কনফিগার করুন",
+    "qa_user_role_title": "ব্যবহারকারী ও রোল ব্যবস্থাপনা",
+    "qa_user_role_desc": "ব্যবহারকারী ও রোল পরিচালনা",
+    "qa_branches_title": "শাখাসমূহ",
+    "qa_branches_desc": "শাখা ও অবস্থান পরিচালনা",
+    "qa_payment_methods_title": "পেমেন্ট পদ্ধতি",
+    "qa_payment_methods_desc": "পেমেন্ট পদ্ধতি পরিচালনা",
+    "qa_system_logs_title": "সিস্টেম লগ",
+    "qa_system_logs_desc": "সিস্টেম কার্যক্রম ও লগ দেখুন",
+    "qa_backup_restore_title": "ব্যাকআপ ও পুনরুদ্ধার",
+    "qa_backup_restore_desc": "ডেটাবেস ব্যাকআপ ও পুনরুদ্ধার করুন",
+    "version_label": "আপনি ব্যবহার করছেন ArchTech IMS",
+    "need_help": "সাহায্য দরকার?",
+    "contact_support": "সাপোর্টে যোগাযোগ করুন",
+    "keyboard_shortcuts": "কিবোর্ড শর্টকাট",
+    "theme_light": "লাইট",
+    "theme_dark": "ডার্ক",
+    "retry": "আবার চেষ্টা করুন",
+    "loading": "লোড হচ্ছে…",
+    "error_loading_summary": "ড্যাশবোর্ড ডেটা লোড করা যায়নি। সংযোগ পরীক্ষা করে আবার চেষ্টা করুন।"
+}
+ };
+  var realFetch = window.fetch ? window.fetch.bind(window) : null;
+
+  function mockResponse(body) {
+    return new Promise(function (resolve) {
+      setTimeout(function () {
+        resolve(new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+      }, 280); // small delay so loading skeletons are visible, same as a real network hop
+    });
+  }
+
+  window.fetch = function (url, opts) {
+    var path = String(url);
+    if (path.indexOf('/system/sync-status') !== -1) return mockResponse(DEMO.sync_status);
+    if (path.indexOf('/reports/sales-summary') !== -1) return mockResponse(DEMO.sales_summary);
+    if (path.indexOf('/branches') !== -1) return mockResponse(DEMO.branches);
+    if (path.indexOf('/assets/js/i18n/en.json') !== -1) return mockResponse(LANG.en);
+    if (path.indexOf('/assets/js/i18n/bn.json') !== -1) return mockResponse(LANG.bn);
+    if (realFetch) return realFetch(url, opts);
+    return Promise.reject(new Error('No network in preview: ' + path));
+  };
+})();
+</script>
+<script>
+/**
+ * i18n.js — shared client-side language toggle.
+ *
+ * Server-rendered HTML already paints in the session's language (see
+ * views/layouts/app.php, which reads app/Lang/{lang}.php on the server —
+ * that's what makes the *first* paint correct with no flash of the wrong
+ * language). This module lets the বাংলা/EN pill in the top bar swap the
+ * *already-rendered* page instantly, without a round trip, by re-reading
+ * the same string keys from a JSON export of those PHP files.
+ *
+ * Dictionaries live at /assets/js/i18n/en.json and bn.json — generated
+ * from app/Lang/*.php by dev/export-lang-json.php, never hand-duplicated,
+ * so the two languages can't drift apart.
+ */
+(function () {
+  'use strict';
+
+  var dictCache = {};
+  var current = (window.__ARCHTECH__ && window.__ARCHTECH__.lang) || 'en';
+
+  function fetchDict(lang) {
+    if (dictCache[lang]) return Promise.resolve(dictCache[lang]);
+    return fetch('/assets/js/i18n/' + lang + '.json')
+      .then(function (res) {
+        if (!res.ok) throw new Error('i18n dictionary not found: ' + lang);
+        return res.json();
+      })
+      .then(function (dict) {
+        dictCache[lang] = dict;
+        return dict;
+      });
+  }
+
+  function t(key) {
+    var dict = dictCache[current];
+    if (!dict) return key;
+    return Object.prototype.hasOwnProperty.call(dict, key) ? dict[key] : key;
+  }
+
+  function applyToDom(dict) {
+    document.querySelectorAll('[data-i18n]').forEach(function (el) {
+      var key = el.getAttribute('data-i18n');
+      if (!Object.prototype.hasOwnProperty.call(dict, key)) return;
+      var text = dict[key];
+      if (el.dataset.name) text = text.replace(':name', el.dataset.name);
+      el.textContent = text;
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(function (el) {
+      var key = el.getAttribute('data-i18n-placeholder');
+      if (Object.prototype.hasOwnProperty.call(dict, key)) el.placeholder = dict[key];
+    });
+    document.querySelectorAll('[data-i18n-aria-label]').forEach(function (el) {
+      var key = el.getAttribute('data-i18n-aria-label');
+      if (Object.prototype.hasOwnProperty.call(dict, key)) el.setAttribute('aria-label', dict[key]);
+    });
+  }
+
+  function setLanguage(lang) {
+    if (lang !== 'en' && lang !== 'bn') return Promise.resolve();
+    return fetchDict(lang).then(function (dict) {
+      current = lang;
+      document.documentElement.lang = lang;
+      applyToDom(dict);
+      document.querySelectorAll('.lang-opt').forEach(function (btn) {
+        btn.classList.toggle('is-active', btn.dataset.lang === lang);
+      });
+      document.dispatchEvent(new CustomEvent('archtech:langchange', { detail: { lang: lang } }));
+    });
+  }
+
+  // Preload the active language immediately so t() works for anything
+  // rendered by page JS (e.g. dashboard.js) before the user ever toggles.
+  fetchDict(current).catch(function () { /* server-rendered text still stands */ });
+
+  window.ArchTechI18n = { setLanguage: setLanguage, t: t, current: function () { return current; } };
+})();
+
+</script>
+<script>
+/**
+ * app.js — shared shell behaviour (every screen loads this).
+ * Fetch-only, no build step, no framework — per architecture.md Section 1.
+ *
+ * Endpoints touched here: GET /branches, GET /system/sync-status. Both are
+ * shell-level (the pulse strip and branch selector render on every screen),
+ * so they're wired here rather than duplicated per page. Anything
+ * page-specific (KPIs, charts, tables) belongs in that page's own JS file —
+ * see dashboard.js.
+ */
+(function () {
+  'use strict';
+
+  var API_BASE = (window.__ARCHTECH__ && window.__ARCHTECH__.apiBase) || '/api/v1';
+  var SYNC_POLL_MS = 20000;
+
+  document.addEventListener('DOMContentLoaded', function () {
+    initSidebarToggle();
+    initNavGroups();
+    initDropdown('branchDropdownBtn', 'branchDropdownMenu', { onOpen: loadBranches });
+    initDropdown('notifBtn', 'notifMenu', { onOpen: loadNotifications, once: true });
+    initDropdown('profileBtn', 'profileMenu');
+    initThemeToggle();
+    initLangToggle();
+    initSearchShortcut();
+    initPulseStrip();
+  });
+
+  // ---------------------------------------------------------------- sidebar
+  function initSidebarToggle() {
+    var btn = document.getElementById('sidebarToggle');
+    var sidebar = document.getElementById('sidebar');
+    var backdrop = document.getElementById('sidebarBackdrop');
+    if (!btn || !sidebar) return;
+
+    var isDesktop = function () { return window.matchMedia('(min-width: 1025px)').matches; };
+
+    btn.addEventListener('click', function () {
+      if (isDesktop()) {
+        var collapsed = sidebar.classList.toggle('is-collapsed');
+        btn.setAttribute('aria-expanded', String(!collapsed));
+      } else {
+        var open = sidebar.classList.toggle('is-mobile-open');
+        backdrop.classList.toggle('is-visible', open);
+        btn.setAttribute('aria-expanded', String(open));
+      }
+    });
+
+    if (backdrop) {
+      backdrop.addEventListener('click', function () {
+        sidebar.classList.remove('is-mobile-open');
+        backdrop.classList.remove('is-visible');
+      });
+    }
+
+    window.addEventListener('resize', function () {
+      if (isDesktop()) {
+        sidebar.classList.remove('is-mobile-open');
+        backdrop.classList.remove('is-visible');
+      }
+    });
+  }
+
+  // ------------------------------------------------------------- nav groups
+  function initNavGroups() {
+    document.querySelectorAll('[data-nav-toggle]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var group = btn.closest('.nav-group');
+        var isOpen = group.classList.toggle('is-open');
+        btn.setAttribute('aria-expanded', String(isOpen));
+      });
+    });
+  }
+
+  // ---------------------------------------------------------- generic dropdown
+  function initDropdown(btnId, menuId, opts) {
+    opts = opts || {};
+    var btn = document.getElementById(btnId);
+    var menu = document.getElementById(menuId);
+    if (!btn || !menu) return;
+    var loadedOnce = false;
+
+    function close() {
+      menu.hidden = true;
+      btn.setAttribute('aria-expanded', 'false');
+    }
+    function open() {
+      document.querySelectorAll('.dropdown-menu').forEach(function (m) { if (m !== menu) m.hidden = true; });
+      menu.hidden = false;
+      btn.setAttribute('aria-expanded', 'true');
+      if (opts.onOpen && (!opts.once || !loadedOnce)) {
+        loadedOnce = true;
+        opts.onOpen(menu);
+      }
+    }
+
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      menu.hidden ? open() : close();
+    });
+    document.addEventListener('click', function (e) {
+      if (!menu.hidden && !menu.contains(e.target) && e.target !== btn) close();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') close();
+    });
+  }
+
+  // ------------------------------------------------------------ branch list
+  function loadBranches(menu) {
+    menu.innerHTML = '<li class="dropdown-row" style="justify-content:center;color:#8A968F;">' + esc(t('loading')) + '</li>';
+    fetch(API_BASE + '/branches')
+      .then(function (res) { if (!res.ok) throw new Error('branches'); return res.json(); })
+      .then(function (branches) {
+        var activeId = window.__ARCHTECH__.branchId;
+        menu.innerHTML = branches.map(function (b) {
+          var active = b.id === activeId;
+          return '<li><a href="#" class="dropdown-row" data-branch-id="' + b.id + '">' +
+            '<span>' + esc(b.name) + '</span>' +
+            (active ? '<svg width="15" height="15"><use href="#icon-check-circle"/></svg>' : '') +
+            '</a></li>';
+        }).join('');
+        menu.querySelectorAll('[data-branch-id]').forEach(function (link) {
+          link.addEventListener('click', function (e) {
+            e.preventDefault();
+            var name = link.querySelector('span').textContent;
+            document.getElementById('branchDropdownLabel').textContent = name;
+            document.getElementById('pulseBranchName').textContent = name;
+            window.__ARCHTECH__.branchId = Number(link.dataset.branchId);
+            menu.hidden = true;
+            showToast(name + ' — ' + t('active_branch'));
+          });
+        });
+      })
+      .catch(function () {
+        menu.innerHTML = '<li class="dropdown-row" style="color:var(--alert-red);">' + esc(t('error_loading_summary')) + '</li>';
+      });
+  }
+
+  // ------------------------------------------------------------ notifications
+  function loadNotifications(menu) {
+    // No /notifications endpoint is defined in api-contract.yaml yet — this
+    // renders representative sample content so the control isn't a dead
+    // end, and is flagged in the build notes as a proposed addition.
+    var badge = document.getElementById('notifBadge');
+    var items = [
+      { icon: 'icon-alert-triangle', title: 'HP 1005 Toner — 1 unit left', meta: '12 minutes ago' },
+      { icon: 'icon-clipboard-list', title: 'Purchase order PO-2026-0143 received', meta: '1 hour ago' },
+      { icon: 'icon-file-text', title: 'June VAT report is ready', meta: 'Yesterday' }
+    ];
+    if (badge) badge.hidden = items.length === 0;
+    if (items.length === 0) {
+      menu.innerHTML = '<div class="notif-empty">' + esc(t('no_notifications')) + '</div>';
+      return;
+    }
+    menu.innerHTML = items.map(function (n) {
+      return '<div class="notif-item"><span class="notif-item__icon"><svg width="15" height="15"><use href="#' + n.icon + '"/></svg></span>' +
+        '<div><p class="notif-item__title">' + esc(n.title) + '</p><p class="notif-item__meta">' + esc(n.meta) + '</p></div></div>';
+    }).join('');
+  }
+
+  // -------------------------------------------------------------- theme
+  function initThemeToggle() {
+    var btn = document.getElementById('themeToggle');
+    var sun = document.getElementById('themeIconSun');
+    var moon = document.getElementById('themeIconMoon');
+    var label = document.getElementById('themeToggleLabel');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+      var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+      var next = dark ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      btn.setAttribute('aria-pressed', String(!dark));
+      sun.hidden = next === 'dark';
+      moon.hidden = next !== 'dark';
+      if (label) label.textContent = t(next === 'dark' ? 'theme_dark' : 'theme_light');
+      if (label) label.setAttribute('data-i18n', next === 'dark' ? 'theme_dark' : 'theme_light');
+    });
+  }
+
+  // -------------------------------------------------------------- language
+  function initLangToggle() {
+    document.querySelectorAll('.lang-opt').forEach(function (b) {
+      b.addEventListener('click', function () {
+        if (window.ArchTechI18n) window.ArchTechI18n.setLanguage(b.dataset.lang);
+      });
+    });
+  }
+
+  // ------------------------------------------------------------- F2 search
+  function initSearchShortcut() {
+    var input = document.getElementById('globalSearch');
+    if (!input) return;
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'F2') { e.preventDefault(); input.focus(); input.select(); }
+    });
+  }
+
+  // ---------------------------------------------------------- pulse strip
+  function initPulseStrip() {
+    refreshSyncStatus();
+    setInterval(refreshSyncStatus, SYNC_POLL_MS);
+  }
+
+  function refreshSyncStatus() {
+    fetch(API_BASE + '/system/sync-status')
+      .then(function (res) { if (!res.ok) throw new Error('sync-status'); return res.json(); })
+      .then(renderSyncStatus)
+      .catch(function () { renderSyncStatus(null); });
+  }
+
+  function renderSyncStatus(data) {
+    var dot = document.getElementById('pulseDot');
+    var syncLabel = document.getElementById('pulseSyncLabel');
+    var sdcLabel = document.getElementById('pulseSdcLabel');
+    var sdcIcon = document.querySelector('#pulseSdcStatus .pulse-icon use');
+    var lastUpdate = document.getElementById('pulseLastUpdate');
+    if (!dot) return;
+
+    if (!data) {
+      dot.dataset.state = 'offline';
+      syncLabel.textContent = t('status_offline');
+      syncLabel.removeAttribute('data-i18n');
+      syncLabel.setAttribute('data-i18n', 'status_offline');
+      return;
+    }
+
+    var pending = 0;
+    Object.keys(data.pending_by_type || {}).forEach(function (k) { pending += data.pending_by_type[k]; });
+
+    if (data.online === false) {
+      dot.dataset.state = 'offline';
+      syncLabel.textContent = t('status_offline');
+      syncLabel.setAttribute('data-i18n', 'status_offline');
+    } else if (pending > 0) {
+      dot.dataset.state = 'syncing';
+      syncLabel.textContent = pending + ' ' + t('pending_sync_other');
+      syncLabel.removeAttribute('data-i18n');
+    } else {
+      dot.dataset.state = 'online';
+      syncLabel.textContent = t('status_synced');
+      syncLabel.setAttribute('data-i18n', 'status_synced');
+    }
+
+    var sdcPending = (data.pending_by_type || {}).sdc_submit > 0;
+    if (sdcLabel) {
+      sdcLabel.textContent = sdcPending ? t('sdc_pending') : t('sdc_authorized');
+      sdcLabel.setAttribute('data-i18n', sdcPending ? 'sdc_pending' : 'sdc_authorized');
+    }
+    if (sdcIcon) sdcIcon.setAttribute('href', sdcPending ? '#icon-wifi-off' : '#icon-check-circle');
+
+    if (lastUpdate && data.last_sdc_success_at) {
+      lastUpdate.textContent = formatDateTime(data.last_sdc_success_at);
+    }
+    if (data.branch_name) {
+      var bn = document.getElementById('pulseBranchName');
+      if (bn) bn.textContent = data.branch_name;
+    }
+  }
+
+  // -------------------------------------------------------------- helpers
+  function t(key) { return window.ArchTechI18n ? window.ArchTechI18n.t(key) : key; }
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  function formatDateTime(iso) {
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return iso;
+    var h = d.getHours();
+    var ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12; if (h === 0) h = 12;
+    var mins = String(d.getMinutes()).padStart(2, '0');
+    return String(d.getDate()).padStart(2, '0') + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear() + ' ' + h + ':' + mins + ' ' + ampm;
+  }
+
+  function showToast(message) {
+    var el = document.querySelector('.toast');
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'toast';
+      document.body.appendChild(el);
+    }
+    el.textContent = message;
+    requestAnimationFrame(function () { el.classList.add('is-visible'); });
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(function () { el.classList.remove('is-visible'); }, 2600);
+  }
+  window.ArchTechToast = showToast;
+
+  // ----------------------------------------------------- preview-only guard
+  // Only intercepts routes that have no real page in this demo (those
+  // already carry onclick="return false" + a "Not included" title).
+  // Every route that maps to a real, delivered screen navigates normally.
+  if (window.__ARCHTECH_PREVIEW__) {
+    document.addEventListener('click', function (e) {
+      var link = e.target.closest('[data-route].is-demo-disabled');
+      if (!link) return;
+      e.preventDefault();
+      showToast('Preview only — the ' + link.textContent.trim() + ' screen isn\'t part of this demo.');
+    });
+  }
+})();
+
+</script>
+<script>
+/**
+ * dashboard.js — Dashboard screen (Reports module, read-only).
+ * Endpoint: GET /reports/sales-summary (see build notes for the proposed
+ * response schema — it is not yet fully specified in api-contract.yaml).
+ *
+ * Render functions take plain data and touch only the DOM — they don't
+ * know whether that data came from a real fetch() or the standalone
+ * preview's mocked one, which is what keeps the preview drift-free from
+ * production.
+ */
+(function () {
+  'use strict';
+
+  var API_BASE = (window.__ARCHTECH__ && window.__ARCHTECH__.apiBase) || '/api/v1';
+  var currentRange = 'week';
+  var currentData = null;
+
+  document.addEventListener('DOMContentLoaded', function () {
+    initRangeSelect();
+    initCustomizeDashboard();
+    loadDashboard();
+    document.addEventListener('archtech:langchange', function () {
+      if (currentData) {
+        renderRecentTransactions(currentData.recent_transactions);
+        renderLowStockAlerts(currentData.low_stock_alerts);
+        renderTopSellingItems(currentData.top_selling_items);
+        renderChartForRange(currentRange);
+        renderKPIs(currentData.kpis);
+      }
+    });
+  });
+
+  // --------------------------------------------------------------- fetch
+  function loadDashboard() {
+    fetch(API_BASE + '/reports/sales-summary')
+      .then(function (res) { if (!res.ok) throw new Error('sales-summary ' + res.status); return res.json(); })
+      .then(function (data) {
+        currentData = data;
+        renderKPIs(data.kpis);
+        renderChartForRange(currentRange);
+        renderRecentTransactions(data.recent_transactions);
+        renderLowStockAlerts(data.low_stock_alerts);
+        renderTopSellingItems(data.top_selling_items);
+      })
+      .catch(showErrorState);
+  }
+
+  // ---------------------------------------------------------------- KPIs
+  function renderKPIs(kpis) {
+    if (!kpis) return;
+    setMoneyKpi('kpiTodaySales', 'kpiTodaySalesTrend', kpis.today_sales);
+    setMoneyKpi('kpiStockValue', 'kpiStockValueTrend', kpis.stock_value);
+    setMoneyKpi('kpiVatCollected', 'kpiVatCollectedTrend', kpis.vat_collected_this_month);
+    setMoneyKpi('kpiOutstanding', 'kpiOutstandingTrend', kpis.total_outstanding);
+    setCountKpi('kpiCustomers', 'kpiCustomersTrend', kpis.total_customers);
+
+    var lowEl = document.getElementById('kpiLowStock');
+    lowEl.classList.remove('skel');
+    lowEl.textContent = formatInt(kpis.low_stock_items.value);
+    var lowTrend = document.getElementById('kpiLowStockTrend');
+    lowTrend.innerHTML = '<a href="inventory.html">' + kpis.low_stock_items.new_alerts +
+      ' <span data-i18n="new_alerts">' + esc(t('new_alerts')) + '</span></a>';
+  }
+
+  function setMoneyKpi(valueId, trendId, kpi) {
+    if (!kpi) return;
+    var valueEl = document.getElementById(valueId);
+    valueEl.classList.remove('skel');
+    valueEl.innerHTML = '<span class="cur">৳</span>' + formatMoney(kpi.value);
+    renderTrend(trendId, kpi);
+  }
+
+  function setCountKpi(valueId, trendId, kpi) {
+    if (!kpi) return;
+    var valueEl = document.getElementById(valueId);
+    valueEl.classList.remove('skel');
+    valueEl.textContent = formatInt(kpi.value);
+    renderTrend(trendId, kpi);
+  }
+
+  function renderTrend(trendId, kpi) {
+    var el = document.getElementById(trendId);
+    if (!el) return;
+    var compareKey = kpi.compare === 'vs_yesterday' ? 'vs_yesterday' : 'vs_last_month';
+    el.classList.remove('kpi-trend--up', 'kpi-trend--bad');
+    el.classList.add(kpi.bad_when_up ? 'kpi-trend--bad' : 'kpi-trend--up');
+    el.innerHTML = '<svg width="13" height="13"><use href="#icon-trending-up"/></svg>' +
+      '<span>' + Number(kpi.change_percent).toFixed(1) + '%</span> ' +
+      '<span class="trend-note" data-i18n="' + compareKey + '">' + esc(t(compareKey)) + '</span>';
+  }
+
+  // --------------------------------------------------------------- chart
+  function initRangeSelect() {
+    var sel = document.getElementById('chartRangeSelect');
+    if (!sel) return;
+    sel.addEventListener('change', function () {
+      currentRange = sel.value;
+      renderChartForRange(currentRange);
+    });
+  }
+
+  function renderChartForRange(range) {
+    if (!currentData || !currentData.sales_chart) return;
+    var series = currentData.sales_chart.ranges[range] || currentData.sales_chart.ranges.week;
+    renderChart(series);
+  }
+
+  function renderChart(series) {
+    var yaxis = document.getElementById('chartYAxis');
+    var gridlines = document.getElementById('chartGridlines');
+    var barsWrap = document.getElementById('chartBars');
+    var xaxis = document.getElementById('chartXAxis');
+    if (!barsWrap) return;
+
+    if (!series || series.length === 0) {
+      barsWrap.innerHTML = '';
+      xaxis.innerHTML = '';
+      yaxis.innerHTML = '';
+      gridlines.innerHTML = '';
+      barsWrap.parentElement.insertAdjacentHTML('beforeend', '<p class="table-empty" data-empty-note>' + esc(t('chart_empty')) + '</p>');
+      return;
+    }
+    var existingNote = barsWrap.parentElement.querySelector('[data-empty-note]');
+    if (existingNote) existingNote.remove();
+
+    var max = Math.max.apply(null, series.map(function (s) { return s.value; }));
+    var niceMax = niceCeil(max);
+    var steps = 5;
+    var labels = [];
+    for (var i = 0; i <= steps; i++) labels.push(Math.round((niceMax * i) / steps));
+
+    yaxis.innerHTML = labels.map(function (v) { return '<span>' + formatCompactCurrency(v) + '</span>'; }).join('');
+    gridlines.innerHTML = labels.map(function () { return '<span></span>'; }).join('');
+
+    barsWrap.innerHTML = '';
+    xaxis.innerHTML = '';
+    var frag = document.createDocumentFragment();
+    var xfrag = document.createDocumentFragment();
+
+    series.forEach(function (pt) {
+      var pct = niceMax > 0 ? Math.max((pt.value / niceMax) * 100, 1.5) : 1.5;
+      var col = document.createElement('div');
+      col.className = 'bar-col';
+      col.tabIndex = 0;
+      col.innerHTML = '<div class="bar-tooltip">৳' + formatMoney(pt.value) + '</div>' +
+        '<div class="bar' + (pt.is_today ? ' is-today' : '') + '" style="height:2%"></div>';
+      frag.appendChild(col);
+
+      var lbl = document.createElement('span');
+      lbl.textContent = pt.label + (pt.day ? ' ' + pt.day : '');
+      if (pt.is_today) lbl.classList.add('is-today');
+      xfrag.appendChild(lbl);
+
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          col.querySelector('.bar').style.height = pct + '%';
+        });
+      });
+    });
+
+    barsWrap.appendChild(frag);
+    xaxis.appendChild(xfrag);
+  }
+
+  // -------------------------------------------------------------- tables
+  function renderRecentTransactions(rows) {
+    var tbody = document.getElementById('recentTransactionsBody');
+    if (!tbody) return;
+    if (!rows || rows.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="table-empty">' + esc(t('chart_empty')) + '</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map(function (r) {
+      var isReturn = r.type === 'return';
+      var statusKey = r.status === 'returned' ? 'status_returned' : (r.status === 'due' ? 'status_due' : 'status_completed');
+      var badgeClass = r.status === 'returned' ? 'badge-returned' : (r.status === 'due' ? 'badge-due' : 'badge-success');
+      var amount = (r.amount < 0 ? '-' : '') + '৳' + formatMoney(Math.abs(r.amount));
+      var customer = r.customer ? esc(r.customer) : '<span data-i18n="walk_in_customer">' + esc(t('walk_in_customer')) + '</span>';
+      return '<tr>' +
+        '<td><span class="type-icon ' + (isReturn ? 'type-icon--return' : 'type-icon--sale') + '">' +
+          '<svg width="15" height="15"><use href="#' + (isReturn ? 'icon-corner-up-left' : 'icon-cart') + '"/></svg></span></td>' +
+        '<td class="mono">' + esc(r.invoice_no) + '</td>' +
+        '<td class="col-fluid">' + customer + '</td>' +
+        '<td class="num">' + amount + '</td>' +
+        '<td class="mono">' + esc(r.time) + '</td>' +
+        '<td><span class="badge ' + badgeClass + '" data-i18n="' + statusKey + '">' + esc(t(statusKey)) + '</span></td>' +
+        '</tr>';
+    }).join('');
+  }
+
+  function renderLowStockAlerts(rows) {
+    var tbody = document.getElementById('lowStockBody');
+    if (!tbody) return;
+    if (!rows || rows.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" class="table-empty" data-i18n="low_stock_empty">' + esc(t('low_stock_empty')) + '</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map(function (r) {
+      return '<tr>' +
+        '<td class="mono" style="color:var(--alert-red);font-weight:600;">' + esc(r.sku) + '</td>' +
+        '<td class="col-fluid">' + esc(r.product_name) + '</td>' +
+        '<td class="num" style="color:var(--alert-red);font-weight:700;">' + formatInt(r.current_stock) + '</td>' +
+        '<td class="num">' + formatInt(r.min_level) + '</td>' +
+        '</tr>';
+    }).join('');
+  }
+
+  function renderTopSellingItems(rows) {
+    var tbody = document.getElementById('topSellingBody');
+    if (!tbody) return;
+    if (!rows || rows.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" class="table-empty">—</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map(function (r) {
+      return '<tr>' +
+        '<td class="mono">' + esc(r.sku) + '</td>' +
+        '<td class="col-fluid">' + esc(r.product_name) + '</td>' +
+        '<td class="num">' + formatInt(r.sold_qty) + '</td>' +
+        '<td class="num">৳' + formatMoney(r.revenue) + '</td>' +
+        '</tr>';
+    }).join('');
+  }
+
+  // ---------------------------------------------------------- error state
+  function showErrorState() {
+    var msg = esc(t('error_loading_summary'));
+    var retryBtn = '<button type="button" class="btn btn-outline" data-retry style="margin-top:10px;height:32px;padding:0 14px;">' +
+      '<svg width="14" height="14"><use href="#icon-refresh"/></svg> ' + esc(t('retry')) + '</button>';
+
+    [['recentTransactionsBody', 6], ['lowStockBody', 4], ['topSellingBody', 4]].forEach(function (pair) {
+      var el = document.getElementById(pair[0]);
+      if (el) el.innerHTML = '<tr><td colspan="' + pair[1] + '" class="table-error">' + msg + '<br>' + retryBtn + '</td></tr>';
+    });
+    ['kpiTodaySales', 'kpiStockValue', 'kpiLowStock', 'kpiVatCollected', 'kpiOutstanding', 'kpiCustomers'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) { el.classList.remove('skel'); el.textContent = '—'; }
+    });
+    document.querySelectorAll('[data-retry]').forEach(function (b) { b.addEventListener('click', loadDashboard); });
+  }
+
+  // ----------------------------------------------------- customize popover
+  function initCustomizeDashboard() {
+    var wrap = document.getElementById('customizeDropdown');
+    var btn = document.getElementById('customizeBtn');
+    if (!wrap || !btn) return;
+
+    var sections = [
+      { id: 'kpiGrid', key: 'customize_kpis' },
+      { id: 'gcChart', key: 'customize_chart', target: '.gc-chart' },
+      { id: 'gcTransactions', key: 'customize_transactions', target: '.gc-transactions' },
+      { id: 'gcLowStock', key: 'customize_low_stock', target: '.gc-rail .card:nth-child(1)' },
+      { id: 'gcTopSelling', key: 'customize_top_selling', target: '.gc-rail .card:nth-child(2)' },
+      { id: 'gcQuickActions', key: 'customize_quick_actions', target: '.gc-quick-actions' }
+    ];
+
+    var menu = document.createElement('div');
+    menu.className = 'dropdown-menu dropdown-menu--wide';
+    menu.hidden = true;
+    menu.innerHTML = '<p style="padding:8px 10px;font-size:11px;color:#8A968F;" data-i18n="customize_hint">' + esc(t('customize_hint')) + '</p>' +
+      sections.map(function (s) {
+        return '<label class="dropdown-row" style="cursor:pointer;">' +
+          '<span data-i18n="' + s.key + '">' + esc(t(s.key)) + '</span>' +
+          '<input type="checkbox" checked data-section="' + s.id + '" style="accent-color:var(--deep-teal);width:16px;height:16px;">' +
+          '</label>';
+      }).join('') +
+      '<div class="dropdown-divider"></div>';
+    wrap.appendChild(menu);
+
+    menu.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
+      cb.addEventListener('change', function () {
+        var section = sections.find(function (s) { return s.id === cb.dataset.section; });
+        var el = section.target ? document.querySelector(section.target) : document.getElementById(section.id);
+        if (el) el.style.display = cb.checked ? '' : 'none';
+      });
+    });
+
+    function close() { menu.hidden = true; btn.setAttribute('aria-expanded', 'false'); }
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      document.querySelectorAll('.dropdown-menu').forEach(function (m) { if (m !== menu) m.hidden = true; });
+      menu.hidden = !menu.hidden;
+      btn.setAttribute('aria-expanded', String(!menu.hidden));
+    });
+    document.addEventListener('click', function (e) {
+      if (!menu.hidden && !menu.contains(e.target) && e.target !== btn) close();
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+  }
+
+  // -------------------------------------------------------------- helpers
+  function t(key) { return window.ArchTechI18n ? window.ArchTechI18n.t(key) : key; }
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function formatMoney(v) {
+    return Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function formatInt(v) { return Number(v).toLocaleString('en-US'); }
+  function formatCompactCurrency(v) {
+    if (v === 0) return '৳0';
+    if (Math.abs(v) >= 1000) return '৳' + (v / 1000).toFixed(v % 1000 === 0 ? 0 : 1) + 'K';
+    return '৳' + v;
+  }
+  function niceCeil(value) {
+    if (!value || value <= 0) return 100;
+    var exp = Math.floor(Math.log(value) / Math.LN10);
+    var base = Math.pow(10, exp);
+    var fraction = value / base;
+    var nice;
+    if (fraction <= 1) nice = 1;
+    else if (fraction <= 1.5) nice = 1.5;
+    else if (fraction <= 2) nice = 2;
+    else if (fraction <= 3) nice = 3;
+    else if (fraction <= 5) nice = 5;
+    else if (fraction <= 7.5) nice = 7.5;
+    else nice = 10;
+    return nice * base;
+  }
+
+  // Exposed so the standalone preview can feed demo JSON through the exact
+  // same rendering code path as production (see dev/preview build notes).
+  window.ArchTechDashboard = { loadDashboard: loadDashboard };
+})();
+
+</script></body>
+</html>
