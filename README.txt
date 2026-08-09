@@ -23,7 +23,7 @@ list, same order) so the demo feels like one connected product instead
 of separate screens stitched together:
 
   - Dashboard            (dashboard.html)
-  - POS / Billing         (not in this demo)
+  - POS / Billing         (pos.html)
   - Inventory / Stock     (inventory.html)
   - Purchases             (purchase-orders.html)
   - Sales                 (sales-history.html)
@@ -47,6 +47,15 @@ screen.
 Menu items for screens that aren't part of this demo phase are dimmed
 and show a "Not included in this demo" tooltip instead of a dead link.
 
+POS / BILLING PAGE
+-------------------
+pos.html is a richer, fully interactive point-of-sale screen (product
+grid, live invoice, cash/card/bKash/Nagad payment flows, held invoices,
+receipts). It's built with React, but the React/ReactDOM/Babel libraries
+are bundled locally in the vendor/ folder — so, like every other page,
+it works fully offline with no internet connection required. Keep the
+vendor/ folder alongside pos.html when copying or sharing files.
+
 WHAT'S STATIC
 -------------
 This is a front-end visual demo, not a connected application — the data
@@ -59,11 +68,13 @@ FILES
 -----
 index.html            Sign-in screen (start here)
 dashboard.html         Dashboard
+pos.html                POS / Billing
 sales-history.html     Sales History / Transactions
-inventory.html         Inventory / Stock Management
-customers.html         Customers (CRM)
+inventory.html          Inventory / Stock Management
+customers.html          Customers (CRM)
 dues.html               Customer Dues / Receivables
 purchase-orders.html   Purchase Orders
 reports.html            Reports & Analytics
 vat-invoice.html        VAT / Invoice Detail
 settings.html           General Settings
+vendor/                 Local React/Babel libraries used by pos.html
