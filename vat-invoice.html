@@ -275,6 +275,109 @@ table { border-collapse: collapse; width: 100%; }
 }
 .is-demo-disabled { opacity: .45; cursor: not-allowed !important; }
 .is-demo-disabled:hover { background: transparent !important; color: inherit !important; }
+
+/* ===== Unified sidebar (matches settings.html) ===== */
+.sidebar {
+  width: var(--sidebar-width, 220px);
+  flex-shrink: 0;
+  background: var(--deep-teal, #0E3B36);
+  display: flex;
+  flex-direction: column;
+  transition: width .18s ease;
+  overflow: hidden;
+}
+.app-shell.is-collapsed .sidebar { width: var(--sidebar-width-collapsed, 72px); }
+.sidebar__logo {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3, 12px);
+  padding: var(--space-5, 20px) var(--space-5, 20px) var(--space-4, 16px);
+  flex-shrink: 0;
+}
+.sidebar__logo-icon { width: 40px; height: 40px; flex-shrink: 0; color: var(--marigold, #E8A33D); }
+.sidebar__logo-text { min-width: 0; overflow: hidden; }
+.sidebar__logo-title {
+  font-family: var(--font-display, 'Sora', 'General Sans', 'Noto Sans Bengali', sans-serif);
+  font-weight: 700;
+  font-size: 19px;
+  color: var(--text-on-dark, #F3F6F4);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.sidebar__logo-subtitle {
+  font-size: 11px;
+  color: var(--text-on-dark-muted, #9FB6B0);
+  line-height: 1.35;
+  margin-top: 3px;
+}
+.app-shell.is-collapsed .sidebar__logo-text { display: none; }
+.sidebar__nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-2, 8px) var(--space-3, 12px) var(--space-4, 16px);
+}
+.sidebar__nav::-webkit-scrollbar { width: 6px; }
+.sidebar__nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 3px; }
+.sidebar__nav ul { list-style: none; margin: 0; padding: 0; }
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 12px);
+  padding: 10px var(--space-3, 12px);
+  margin: 1px 0;
+  border-radius: var(--radius-sm, 6px);
+  color: var(--text-on-dark, #F3F6F4);
+  font-size: 14.5px;
+  font-weight: 500;
+  border-left: 3px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+}
+.nav-item svg { width: 19px; height: 19px; flex-shrink: 0; opacity: .92; }
+.nav-item span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nav-item:hover { background: rgba(255,255,255,0.06); }
+.nav-item.is-active {
+  background: var(--deep-teal-600, #123F3A);
+  color: var(--marigold, #E8A33D);
+  border-left-color: var(--marigold, #E8A33D);
+}
+.nav-item.is-active svg { opacity: 1; }
+.nav-item.is-demo-disabled { opacity: .45; cursor: not-allowed; }
+.nav-item.is-demo-disabled:hover { background: transparent; }
+.app-shell.is-collapsed .nav-item span,
+.app-shell.is-collapsed .subnav { display: none; }
+.subnav { padding: 2px 0 6px 0; margin: 0; list-style: none; }
+.subnav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px var(--space-3, 12px) 8px 40px;
+  font-size: 13.5px;
+  color: var(--text-on-dark-muted, #9FB6B0);
+  border-radius: var(--radius-sm, 6px);
+  cursor: pointer;
+  text-decoration: none;
+}
+.subnav-item:hover { background: rgba(255,255,255,0.05); color: var(--text-on-dark, #F3F6F4); }
+.subnav-item::before {
+  content: '';
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+.subnav-item.is-active { color: var(--marigold, #E8A33D); font-weight: 600; }
+.subnav-item.is-demo-disabled { opacity: .5; cursor: not-allowed; }
+.subnav-item.is-demo-disabled:hover { background: transparent; color: var(--text-on-dark-muted, #9FB6B0); }
+.sidebar__footer {
+  flex-shrink: 0;
+  padding: var(--space-5, 20px);
+  border-top: 1px solid rgba(255,255,255,0.08);
+  font-size: 12px;
+  color: var(--text-on-dark-muted, #9FB6B0);
+  line-height: 1.7;
+}
+.app-shell.is-collapsed .sidebar__footer { display: none; }
 </style>
 </head>
 <body>
@@ -306,30 +409,19 @@ table { border-collapse: collapse; width: 100%; }
 
   <div class="app-body">
     <!-- ============ Sidebar ============ -->
-    <aside class="sidebar">
-      <div class="sidebar__brand">
-        <span class="brand-mark">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v9.5h16V10"/><path d="M3 6.5 4.5 3h15L21 6.5"/><path d="M3 6.5a2.25 2.25 0 0 0 4.5 0M7.5 6.5a2.25 2.25 0 0 0 4.5 0M12 6.5a2.25 2.25 0 0 0 4.5 0M16.5 6.5a2.25 2.25 0 0 0 4.5 0"/><path d="M9.5 19.5V14h5v5.5"/></svg>
-        </span>
-        <div class="brand-text">
-          <span class="brand-name">ArchTech IMS</span>
-          <span class="brand-tagline" data-i18n="app.tagline">Inventory Management System</span>
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar__logo">
+        <div class="sidebar__logo-icon"><svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 17h7v15H8V17Zm9-3h6v18h-6V14Zm8 5h7v13h-7V19Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M6 17l2.5-8h3L14 17M14 14l1.5-5h3l1.5 5M23 19l1.8-6h3.4l1.8 6" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M11 24h2v4h-2v-4Zm9-6h2v4h-2v-4Zm8 8h2v3h-2v-3Z" stroke="currentColor" stroke-width="1.4"/></svg></div>
+        <div class="sidebar__logo-text">
+          <div class="sidebar__logo-title">ArchTech IMS</div>
+          <div class="sidebar__logo-subtitle">Inventory Management System</div>
         </div>
       </div>
-      <nav class="sidebar__nav">
-        <a class="nav-item" href="dashboard.html" data-icon="dashboard"><span data-i18n="nav.dashboard">Dashboard</span></a>
-        <a class="nav-item is-demo-disabled" href="#" onclick="return false" title="Not included in this demo" data-icon="pos"><span data-i18n="nav.pos">POS / Billing</span></a>
-        <a class="nav-item" href="inventory.html" data-icon="inventory"><span data-i18n="nav.inventory">Inventory</span></a>
-        <a class="nav-item" href="purchase-orders.html" data-icon="purchases"><span data-i18n="nav.purchases">Purchases</span></a>
-        <a class="nav-item is-active" href="sales-history.html" data-icon="sales"><span data-i18n="nav.sales">Sales</span></a>
-        <a class="nav-item" href="customers.html" data-icon="customers"><span data-i18n="nav.customers">Customers</span></a>
-        <a class="nav-item is-demo-disabled" href="#" onclick="return false" title="Not included in this demo" data-icon="suppliers"><span data-i18n="nav.suppliers">Suppliers</span></a>
-        <a class="nav-item" href="reports.html" data-icon="reports"><span data-i18n="nav.reports">Reports</span></a>
-        <a class="nav-item" href="settings.html" data-icon="settings"><span data-i18n="nav.settings">Settings</span></a>
-      </nav>
+      <nav class="sidebar__nav"><ul><li><a class="nav-item" href="dashboard.html"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3.5" y="3.5" width="7" height="7" rx="1.2" stroke="currentColor" stroke-width="1.8"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.2" stroke="currentColor" stroke-width="1.8"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.2" stroke="currentColor" stroke-width="1.8"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.2" stroke="currentColor" stroke-width="1.8"/></svg><span>Dashboard</span></a></li><li><a class="nav-item" href="pos.html"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="8" width="18" height="12" rx="1.5" stroke="currentColor" stroke-width="1.8"/><path d="M7 8V6a5 5 0 0 1 10 0v2" stroke="currentColor" stroke-width="1.8"/><path d="M3 13h18" stroke="currentColor" stroke-width="1.8"/></svg><span>POS / Billing</span></a></li><li><a class="nav-item" href="inventory.html"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M4 7.5L12 12l8-4.5M12 12v9" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>Inventory</span></a></li><li><a class="nav-item" href="purchase-orders.html"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 4h2l2.2 11.5a2 2 0 0 0 2 1.6h7.4a2 2 0 0 0 2-1.6L20.5 8H6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="10" cy="20.5" r="1.4" stroke="currentColor" stroke-width="1.6"/><circle cx="17" cy="20.5" r="1.4" stroke="currentColor" stroke-width="1.6"/></svg><span>Purchases</span></a></li><li><a class="nav-item" href="sales-history.html"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 17l6-6 4 4 8-8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 7h6v6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Sales</span></a></li><li><a class="nav-item" href="customers.html"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="9" cy="8" r="3.2" stroke="currentColor" stroke-width="1.8"/><path d="M2.5 19c1.1-3.3 3.6-5 6.5-5s5.4 1.7 6.5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M15.5 5.5a3.2 3.2 0 0 1 0 6.2M18 14.3c2 .5 3.5 2 4.3 4.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>Customers</span></a></li><li><a class="nav-item" href="dues.html"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 7a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v2h1.5A1.5 1.5 0 0 1 21 10.5v6A1.5 1.5 0 0 1 19.5 18H5a2 2 0 0 1-2-2V7Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="16.5" cy="13.5" r="1.3" stroke="currentColor" stroke-width="1.4"/></svg><span>Dues</span></a></li><li><a class="nav-item is-demo-disabled" href="#" onclick="return false" title="Not included in this demo"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2.5 6h11v10h-11z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M13.5 10h4l3.5 3.5V16h-7.5" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="6.5" cy="18" r="1.8" stroke="currentColor" stroke-width="1.6"/><circle cx="17" cy="18" r="1.8" stroke="currentColor" stroke-width="1.6"/></svg><span>Suppliers</span></a></li><li><a class="nav-item" href="reports.html"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3a9 9 0 1 0 9 9h-9V3Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14.5 3.5A9 9 0 0 1 20.5 9.5H14.5v-6Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>Reports</span></a></li><li><a class="nav-item is-active" href="settings.html"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 13.5a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.9 2.9l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V20a2 2 0 1 1-4 0v-.2a1.7 1.7 0 0 0-1.1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.9-2.9l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H4a2 2 0 1 1 0-4h.2a1.7 1.7 0 0 0 1.6-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.9-2.9l.1.1a1.7 1.7 0 0 0 1.9.3H10.5a1.7 1.7 0 0 0 1-1.6V4a2 2 0 1 1 4 0v.2a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.9 2.9l-.1.1a1.7 1.7 0 0 0-.3 1.9V10.5a1.7 1.7 0 0 0 1.6 1H20a2 2 0 1 1 0 4h-.2a1.7 1.7 0 0 0-1.6 1Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg><span>Settings</span></a><ul class="subnav"><li><a class="subnav-item" href="settings.html">General Settings</a></li><li><a class="subnav-item is-demo-disabled" href="#" onclick="return false" title="Not included in this demo">User &amp; Role Management</a></li><li><a class="subnav-item is-demo-disabled" href="#" onclick="return false" title="Not included in this demo">Branches</a></li><li><a class="subnav-item is-active" href="vat-invoice.html">Taxes &amp; VAT</a></li><li><a class="subnav-item is-demo-disabled" href="#" onclick="return false" title="Not included in this demo">Payment Methods</a></li><li><a class="subnav-item is-demo-disabled" href="#" onclick="return false" title="Not included in this demo">System Logs</a></li><li><a class="subnav-item is-demo-disabled" href="#" onclick="return false" title="Not included in this demo">Backup &amp; Restore</a></li></ul></li></ul></nav>
       <div class="sidebar__footer">
-        <p>&copy; 2026 ArchTech IMS</p>
-        <p data-i18n="footer.rights">All rights reserved</p>
+        <div>&copy; 2026 ArchTech IMS</div>
+        <div>All rights reserved</div>
+        <div>Version 1.0.0</div>
       </div>
     </aside>
 

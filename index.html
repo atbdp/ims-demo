@@ -227,6 +227,30 @@ button { font-family: inherit; }
 }
 .demo-credentials__fill:hover { color: var(--marigold-600); }
 
+/* ===== Splash / boot animation ===== */
+#splashOverlay {
+  position: fixed; inset: 0; background: var(--deep-teal, #0E3B36);
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 16px; z-index: 9999;
+  transition: opacity .5s ease;
+}
+#splashOverlay.is-hidden { opacity: 0; pointer-events: none; }
+#splashOverlay .splash-icon { width: 54px; height: 54px; color: var(--marigold, #E8A33D); }
+#splashOverlay h1 {
+  color: #fff; font-size: 23px; font-weight: 800; letter-spacing: -0.02em; margin: 0;
+  font-family: var(--font-display, 'Sora', 'General Sans', sans-serif);
+}
+#splashOverlay p { color: var(--soft-sage, #B9CDB0); font-size: 12.5px; margin: 0; }
+#splashOverlay .splash-bar {
+  width: 220px; height: 3px; background: rgba(255,255,255,.14);
+  border-radius: 3px; overflow: hidden;
+}
+#splashOverlay .splash-fill {
+  height: 100%; width: 0%; background: var(--marigold, #E8A33D); border-radius: 3px;
+}
+#splashOverlay .splash-fill.is-animating { animation: splashLoad 1.5s ease forwards; }
+@keyframes splashLoad { from { width: 0%; } to { width: 100%; } }
+
 .auth-footer {
   display: flex; align-items: center; justify-content: center; gap: var(--space-3); flex-wrap: wrap;
   color: var(--text-muted); font-size: 0.8125rem; padding-bottom: var(--space-4); text-align: center;
@@ -257,6 +281,16 @@ button { font-family: inherit; }
   </style>
 </head>
 <body>
+  <div id="splashOverlay">
+    <svg class="splash-icon" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M8 17h7v15H8V17Zm9-3h6v18h-6V14Zm8 5h7v13h-7V19Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+      <path d="M6 17l2.5-8h3L14 17M14 14l1.5-5h3l1.5 5M23 19l1.8-6h3.4l1.8 6" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+      <path d="M11 24h2v4h-2v-4Zm9-6h2v4h-2v-4Zm8 8h2v3h-2v-3Z" stroke="currentColor" stroke-width="1.4"/>
+    </svg>
+    <h1>ArchTech IMS</h1>
+    <p id="splashSubtitle">Inventory Management System</p>
+    <div class="splash-bar"><div class="splash-fill is-animating" id="splashFill"></div></div>
+  </div>
   <div class="preview-flag">CLIENT DEMO — sign in with the demo credentials below to explore ArchTech IMS.</div>
   <div class="auth-shell" style="margin-top: 22px;">
 
@@ -472,6 +506,26 @@ button { font-family: inherit; }
       var DEMO_EMAIL = 'demo@archtechbd.com';
       var DEMO_PASSWORD = 'Demo@2026';
 
+      /* ---- Splash / boot animation ---- */
+      var splash = document.getElementById('splashOverlay');
+      var splashFill = document.getElementById('splashFill');
+      var splashSubtitle = document.getElementById('splashSubtitle');
+      function hideSplash() {
+        if (!splash) return;
+        splash.classList.add('is-hidden');
+      }
+      function showSplash(subtitle, durationMs) {
+        if (!splash) return;
+        splashSubtitle.textContent = subtitle;
+        splashFill.classList.remove('is-animating');
+        void splashFill.offsetWidth; /* restart the fill animation */
+        splashFill.style.animationDuration = durationMs + 'ms';
+        splashFill.classList.add('is-animating');
+        splash.classList.remove('is-hidden');
+      }
+      /* Initial boot: show splash briefly, then reveal the sign-in form. */
+      window.setTimeout(hideSplash, 1500);
+
       var emailInput = document.getElementById('email');
       var fillBtn = document.getElementById('fillDemoCreds');
       if (fillBtn) {
@@ -495,9 +549,10 @@ button { font-family: inherit; }
           notice.classList.remove('is-visible');
           submitBtn.disabled = true;
           submitLabel.textContent = 'Signing in…';
+          showSplash('Signing in…', 1400);
           setTimeout(function () {
             window.location.href = 'dashboard.html';
-          }, 500);
+          }, 1450);
         } else {
           noticeText.textContent = 'This demo only accepts the credentials shown above — please use demo@archtechbd.com / Demo@2026.';
           notice.classList.add('is-visible');
